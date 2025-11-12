@@ -4,9 +4,16 @@ Esegui: python init_db.py
 """
 import psycopg2
 import os
+from dotenv import load_dotenv
 
-# Stringa di connessione - MODIFICA CON LA TUA
-DATABASE_URL = "postgresql://postgres:2#NqAWWDX6ZunW5vlG7N@calcoloesposizionerumoremain-rumoredb-zqdpxr:5432/rumore-db"
+load_dotenv()
+
+# Leggi DATABASE_URL dalla variabile d'ambiente
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    print("❌ ERROR: DATABASE_URL environment variable not set!")
+    exit(1)
 
 SQL_SCHEMA = """
 -- Schema Database per Calcolo Esposizione Rumore

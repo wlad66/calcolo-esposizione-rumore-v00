@@ -2,8 +2,8 @@
  * Client API per comunicare con il backend
  */
 
-// IMPORTANTE: Configura questo URL con l'endpoint del tuo backend AWS
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// URL del backend deployato su Dokploy (tramite Traefik reverse proxy)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://72.61.189.136';
 
 interface ApiResponse<T> {
   data?: T;
