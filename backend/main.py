@@ -107,10 +107,27 @@ class ValutazioneDPI(BaseModel):
 # ==================== DATABASE ====================
 
 def get_db():
-    conn = psycopg2.connect(
-        os.getenv("DATABASE_URL"),
-        cursor_factory=RealDictCursor
-    )
+    database_url = os.getenv("DATABASE_URL")
+
+    # Debug: stampa lo stato della variabile d'ambiente
+    print(f"DATABASE_URL: {database_url}")
+
+    if not database_url:
+        raise ValueError(
+            "DATABASE_URL environment variable is not set. "
+            "Please configure it in Dokploy Environment Settings."
+        )
+
+    try:
+        conn = psycopg2.connect(
+            database_url,
+            cursor_factory=RealDictCursor
+        )
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        print(f"Attempted to connect with URL: {database_url}")
+        raise
+
     try:
         yield conn
     finally:
