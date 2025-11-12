@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,7 @@ import {
 import { AziendaForm } from '@/components/aziende/AziendaForm';
 
 const Index = () => {
+  const location = useLocation();
   const [mansione, setMansione] = useState('');
   const [reparto, setReparto] = useState('');
   const [misurazioni, setMisurazioni] = useState<Measurement[]>([{
@@ -57,6 +58,58 @@ const Index = () => {
   useEffect(() => {
     caricaAziende();
   }, []);
+
+  // Carica dati da valutazione salvata (se navigato da pagina Valutazioni)
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.caricaValutazione) {
+      const dati = state.caricaValutazione;
+
+      // Carica dati comuni
+      if (dati.azienda_id) setSelectedAziendaId(dati.azienda_id);
+      if (dati.mansione) setMansione(dati.mansione);
+      if (dati.reparto) setReparto(dati.reparto);
+
+      if (dati.tipo === 'esposizione' && dati.misurazioni) {
+        // Carica misurazioni per valutazione esposizione
+        setMisurazioni(dati.misurazioni.map((m: any) => ({
+          id: m.id || Date.now() + Math.random(),
+          attivita: m.attivita || '',
+          leq: m.leq || '',
+          durata: m.durata || '',
+          lpicco: m.lpicco || ''
+        })));
+
+        toast({
+          title: 'Valutazione caricata',
+          description: `Caricata valutazione per ${dati.mansione}`,
+        });
+      } else if (dati.tipo === 'dpi') {
+        // Carica dati per valutazione DPI
+        if (dati.dpi_selezionato) {
+          setDpiSelezionato(dati.dpi_selezionato);
+          // Se è un DPI dal database, carica i valori HML automaticamente
+          const dpiData = dpiDatabase[dati.dpi_selezionato];
+          if (dpiData) {
+            setValoriHML({
+              h: dpiData.h.toString(),
+              m: dpiData.m.toString(),
+              l: dpiData.l.toString()
+            });
+          }
+        }
+        if (dati.lex_per_dpi) setLexPerDPI(dati.lex_per_dpi);
+
+        toast({
+          title: 'Valutazione DPI caricata',
+          description: `Caricata valutazione DPI per ${dati.mansione}`,
+        });
+      }
+
+      // Pulisci lo state per evitare ricaricamenti
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const caricaAziende = async () => {
     const response = await aziendeAPI.lista();
@@ -332,10 +385,59 @@ const Index = () => {
 
   // Funzioni per salvare nel database
   const salvaEsposizione = async () => {
+    // Validazione azienda
     if (!selectedAziendaId) {
       toast({
         title: 'Attenzione',
         description: 'Seleziona un\'azienda prima di salvare la valutazione',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validazione campi obbligatori
+    if (!mansione.trim()) {
+      toast({
+        title: 'Campi mancanti',
+        description: 'Compila il campo "Mansione"',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validazione misurazioni
+    const misurazioniMancanti: string[] = [];
+    misurazioni.forEach((m, index) => {
+      if (!m.attivita.trim()) {
+        misurazioniMancanti.push(`Riga ${index + 1}: manca la descrizione attività`);
+      }
+      if (!m.leq || m.leq.trim() === '') {
+        misurazioniMancanti.push(`Riga ${index + 1}: manca il valore LEQ`);
+      }
+      if (!m.durata || m.durata.trim() === '') {
+        misurazioniMancanti.push(`Riga ${index + 1}: manca la durata`);
+      }
+      if (!m.lpicco || m.lpicco.trim() === '') {
+        misurazioniMancanti.push(`Riga ${index + 1}: manca Lpicco`);
+      }
+    });
+
+    if (misurazioniMancanti.length > 0) {
+      toast({
+        title: 'Dati incompleti',
+        description: (
+          <div className="space-y-1">
+            <p className="font-semibold">Compila tutti i campi obbligatori:</p>
+            <ul className="list-disc list-inside text-sm">
+              {misurazioniMancanti.slice(0, 3).map((msg, i) => (
+                <li key={i}>{msg}</li>
+              ))}
+              {misurazioniMancanti.length > 3 && (
+                <li>...e altri {misurazioniMancanti.length - 3} campi</li>
+              )}
+            </ul>
+          </div>
+        ),
         variant: 'destructive'
       });
       return;
@@ -348,12 +450,12 @@ const Index = () => {
       misurazioni: misurazioni.map(m => ({
         id: m.id,
         attivita: m.attivita,
-        leq: m.leq,
-        durata: m.durata,
-        lpicco: m.lpicco
+        leq: m.leq.replace(',', '.'),
+        durata: m.durata.replace(',', '.'),
+        lpicco: m.lpicco.replace(',', '.')
       })),
-      lex: lex.toString(),
-      lpicco: lpicco.toString(),
+      lex: lex.toString().replace(',', '.'),
+      lpicco: lpicco.toString().replace(',', '.'),
       classe_rischio: riskClass.classe
     });
 
@@ -372,10 +474,54 @@ const Index = () => {
   };
 
   const salvaDPI = async () => {
+    // Validazione azienda
     if (!selectedAziendaId) {
       toast({
         title: 'Attenzione',
         description: 'Seleziona un\'azienda prima di salvare la valutazione DPI',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validazione campi obbligatori
+    if (!mansione.trim()) {
+      toast({
+        title: 'Campi mancanti',
+        description: 'Compila il campo "Mansione"',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!dpiSelezionato) {
+      toast({
+        title: 'Campi mancanti',
+        description: 'Seleziona un DPI',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validazione valori HML
+    const campiMancanti: string[] = [];
+    if (!valoriHML.h || valoriHML.h.trim() === '') {
+      campiMancanti.push('Valore H');
+    }
+    if (!valoriHML.m || valoriHML.m.trim() === '') {
+      campiMancanti.push('Valore M');
+    }
+    if (!valoriHML.l || valoriHML.l.trim() === '') {
+      campiMancanti.push('Valore L');
+    }
+    if (!lexPerDPI || lexPerDPI.trim() === '') {
+      campiMancanti.push('LEX per DPI');
+    }
+
+    if (campiMancanti.length > 0) {
+      toast({
+        title: 'Dati incompleti',
+        description: `Compila i seguenti campi: ${campiMancanti.join(', ')}`,
         variant: 'destructive'
       });
       return;
@@ -386,10 +532,14 @@ const Index = () => {
       mansione,
       reparto,
       dpi_selezionato: dpiSelezionato,
-      valori_hml: valoriHML,
-      lex_per_dpi: lexPerDPI,
-      pnr: attenuationResults.pnr,
-      leff: attenuationResults.leff,
+      valori_hml: {
+        h: valoriHML.h.replace(',', '.'),
+        m: valoriHML.m.replace(',', '.'),
+        l: valoriHML.l.replace(',', '.')
+      },
+      lex_per_dpi: lexPerDPI.replace(',', '.'),
+      pnr: attenuationResults.pnr.replace(',', '.'),
+      leff: attenuationResults.leff.replace(',', '.'),
       protezione_adeguata: attenuationResults.protezioneAdeguata
     });
 
@@ -426,12 +576,20 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <Link to="/aziende">
-              <Button variant="outline">
-                <Building2 className="h-4 w-4 mr-2" />
-                Gestione Aziende
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link to="/valutazioni">
+                <Button variant="outline">
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Storico Valutazioni
+                </Button>
+              </Link>
+              <Link to="/aziende">
+                <Button variant="outline">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Gestione Aziende
+                </Button>
+              </Link>
+            </div>
           </div>
         </header>
 

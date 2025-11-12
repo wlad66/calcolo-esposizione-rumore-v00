@@ -61,12 +61,23 @@ CREATE TABLE IF NOT EXISTS misurazioni (
     valutazione_id INTEGER REFERENCES valutazioni_esposizione(id) ON DELETE CASCADE,
     attivita VARCHAR(255),
     leq DECIMAL(5,2),
-    durata INTEGER,
+    durata DECIMAL(10,2),
     lpicco DECIMAL(5,2),
     ordine INTEGER DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_misurazioni_valutazione ON misurazioni(valutazione_id);
+
+-- Migrazione: modifica durata da INTEGER a DECIMAL se necessario
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='misurazioni' AND column_name='durata' AND data_type='integer'
+    ) THEN
+        ALTER TABLE misurazioni ALTER COLUMN durata TYPE DECIMAL(10,2) USING durata::DECIMAL(10,2);
+    END IF;
+END $$;
 
 -- Tabella Valutazioni DPI
 CREATE TABLE IF NOT EXISTS valutazioni_dpi (
