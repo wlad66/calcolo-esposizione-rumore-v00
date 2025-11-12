@@ -4,16 +4,16 @@ Esegui: python init_db.py
 """
 import psycopg2
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Leggi DATABASE_URL dalla variabile d'ambiente
+# Leggi DATABASE_URL dalla variabile d'ambiente (iniettata da Dokploy)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     print("❌ ERROR: DATABASE_URL environment variable not set!")
+    print("Available env vars:", list(os.environ.keys()))
     exit(1)
+
+print(f"📝 Using DATABASE_URL from environment")
 
 SQL_SCHEMA = """
 -- Schema Database per Calcolo Esposizione Rumore
