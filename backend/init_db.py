@@ -48,7 +48,6 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_toke
 -- Tabella Aziende
 CREATE TABLE IF NOT EXISTS aziende (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     ragione_sociale VARCHAR(255) NOT NULL,
     partita_iva VARCHAR(11) NOT NULL UNIQUE,
     codice_fiscale VARCHAR(16) NOT NULL,
@@ -66,12 +65,10 @@ CREATE TABLE IF NOT EXISTS aziende (
 -- Indice per ricerca veloce
 CREATE INDEX IF NOT EXISTS idx_aziende_ragione_sociale ON aziende(ragione_sociale);
 CREATE INDEX IF NOT EXISTS idx_aziende_partita_iva ON aziende(partita_iva);
-CREATE INDEX IF NOT EXISTS idx_aziende_user ON aziende(user_id);
 
 -- Tabella Valutazioni Esposizione
 CREATE TABLE IF NOT EXISTS valutazioni_esposizione (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     azienda_id INTEGER REFERENCES aziende(id) ON DELETE CASCADE,
     mansione VARCHAR(255) NOT NULL,
     reparto VARCHAR(255),
@@ -83,7 +80,6 @@ CREATE TABLE IF NOT EXISTS valutazioni_esposizione (
 
 CREATE INDEX IF NOT EXISTS idx_valutazioni_esposizione_azienda ON valutazioni_esposizione(azienda_id);
 CREATE INDEX IF NOT EXISTS idx_valutazioni_esposizione_data ON valutazioni_esposizione(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_valutazioni_esposizione_user ON valutazioni_esposizione(user_id);
 
 -- Tabella Misurazioni (per valutazioni esposizione)
 CREATE TABLE IF NOT EXISTS misurazioni (
@@ -112,7 +108,6 @@ END $$;
 -- Tabella Valutazioni DPI
 CREATE TABLE IF NOT EXISTS valutazioni_dpi (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     azienda_id INTEGER REFERENCES aziende(id) ON DELETE CASCADE,
     mansione VARCHAR(255) NOT NULL,
     reparto VARCHAR(255),
@@ -129,7 +124,6 @@ CREATE TABLE IF NOT EXISTS valutazioni_dpi (
 
 CREATE INDEX IF NOT EXISTS idx_valutazioni_dpi_azienda ON valutazioni_dpi(azienda_id);
 CREATE INDEX IF NOT EXISTS idx_valutazioni_dpi_data ON valutazioni_dpi(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_valutazioni_dpi_user ON valutazioni_dpi(user_id);
 
 -- Trigger per aggiornare updated_at su aziende
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -146,15 +140,19 @@ CREATE TRIGGER update_aziende_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+"""
+
+SQL_MIGRATION = """
 -- Migrazioni: Aggiunta user_id alle tabelle esistenti
 DO $$
 BEGIN
-    -- Aggiungi user_id a aziende se non esiste
+    -- Aggiungi user_id a aziende se non esiste (nullable per dati esistenti)
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name='aziende' AND column_name='user_id'
     ) THEN
-        ALTER TABLE aziende ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+        ALTER TABLE aziende ADD COLUMN user_id INTEGER;
+        ALTER TABLE aziende ADD CONSTRAINT fk_aziende_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
         CREATE INDEX IF NOT EXISTS idx_aziende_user ON aziende(user_id);
     END IF;
 
@@ -163,7 +161,8 @@ BEGIN
         SELECT 1 FROM information_schema.columns
         WHERE table_name='valutazioni_esposizione' AND column_name='user_id'
     ) THEN
-        ALTER TABLE valutazioni_esposizione ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+        ALTER TABLE valutazioni_esposizione ADD COLUMN user_id INTEGER;
+        ALTER TABLE valutazioni_esposizione ADD CONSTRAINT fk_valutazioni_esposizione_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
         CREATE INDEX IF NOT EXISTS idx_valutazioni_esposizione_user ON valutazioni_esposizione(user_id);
     END IF;
 
@@ -172,7 +171,8 @@ BEGIN
         SELECT 1 FROM information_schema.columns
         WHERE table_name='valutazioni_dpi' AND column_name='user_id'
     ) THEN
-        ALTER TABLE valutazioni_dpi ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+        ALTER TABLE valutazioni_dpi ADD COLUMN user_id INTEGER;
+        ALTER TABLE valutazioni_dpi ADD CONSTRAINT fk_valutazioni_dpi_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
         CREATE INDEX IF NOT EXISTS idx_valutazioni_dpi_user ON valutazioni_dpi(user_id);
     END IF;
 END $$;
@@ -181,16 +181,22 @@ END $$;
 def init_database():
     """Inizializza il database con lo schema"""
     print("🔌 Connessione al database...")
-    
+
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
-        
-        print("📊 Creazione tabelle...")
+
+        print("📊 Creazione tabelle base...")
         cursor.execute(SQL_SCHEMA)
         conn.commit()
-        
-        print("✅ Database inizializzato con successo!")
+        print("✅ Tabelle base create")
+
+        print("📊 Esecuzione migrazioni...")
+        cursor.execute(SQL_MIGRATION)
+        conn.commit()
+        print("✅ Migrazioni completate")
+
+        print("\n✅ Database inizializzato con successo!")
         print("\n📋 Tabelle create:")
         print("  - users")
         print("  - password_reset_tokens")
@@ -198,14 +204,16 @@ def init_database():
         print("  - valutazioni_esposizione")
         print("  - misurazioni")
         print("  - valutazioni_dpi")
-        
+
         cursor.close()
         conn.close()
-        
+
     except Exception as e:
         print(f"❌ Errore durante l'inizializzazione: {e}")
+        import traceback
+        traceback.print_exc()
         return False
-    
+
     return True
 
 if __name__ == "__main__":
