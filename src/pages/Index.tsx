@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen } from 'lucide-react';
+import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen, RotateCcw } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -196,11 +196,24 @@ const Index = () => {
       let headerTrovato = false;
       for (let i = 0; i < righe.length; i++) {
         const riga = righe[i];
-        if (riga.includes('Attività') || riga.includes('Mansione') || riga.includes('MANSIONE')) {
+
+        // Salta righe di intestazione sezioni
+        if (riga.includes('INFORMAZIONI GENERALI') ||
+            riga.includes('DATI DI MISURAZIONE') ||
+            riga.includes('Calcolo Esposizione')) {
+          continue;
+        }
+
+        // Riconosci header della tabella dati (gestisce problemi encoding)
+        if (riga.includes('Attività') || riga.includes('AttivitÃ') ||
+            riga.includes('LEQ dB') || riga.includes('Mansione,') ||
+            riga.includes('MANSIONE,') || riga.includes('Reparto,')) {
           headerTrovato = true;
           continue;
         }
-        if (riga.includes('RISULTATI') || riga.includes('LEX')) break;
+
+        // Ferma quando arriva alla sezione risultati
+        if (riga.includes('RISULTATI') || riga.includes('LEX 8h')) break;
         if (!headerTrovato && i === 0) continue;
         const valori: string[] = [];
         let valoreCorrente = '';
@@ -225,7 +238,7 @@ const Index = () => {
           for (let j = 1; j < valori.length; j++) {
             const val = valori[j].replace(/,/g, '.').replace(/[^\d.]/g, '');
             const num = parseFloat(val);
-            if (!isNaN(num) && num > 0) {
+            if (!isNaN(num) && num >= 0) {
               numeri.push({
                 valore: val,
                 numero: num
@@ -555,6 +568,26 @@ const Index = () => {
       });
     }
   };
+
+  const nuovaValutazione = () => {
+    setMansione('');
+    setReparto('');
+    setMisurazioni([{
+      id: Date.now(),
+      attivita: '',
+      leq: '',
+      durata: '',
+      lpicco: ''
+    }]);
+    setDpiSelezionato('');
+    setValoriHML({ h: '', m: '', l: '' });
+    setLexPerDPI('');
+    toast({
+      title: 'Nuova valutazione',
+      description: 'Tutti i campi sono stati resettati'
+    });
+  };
+
   const lex = calcolaLEX(misurazioni);
   const lpicco = getLpiccoMax(misurazioni);
   const riskClass = getClasseRischio(lex);
@@ -576,6 +609,10 @@ const Index = () => {
               </div>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={nuovaValutazione}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Nuova Valutazione
+              </Button>
               <Link to="/valutazioni">
                 <Button variant="outline">
                   <FolderOpen className="h-4 w-4 mr-2" />

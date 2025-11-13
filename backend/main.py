@@ -1,17 +1,40 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from contextlib import asynccontextmanager
 from typing import List, Optional
 import os
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from auth import hash_password, verify_password, create_access_token, decode_access_token
 
 load_dotenv()
 
 # ==================== MODELLI PYDANTIC ====================
+
+# Modelli Autenticazione
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str
+    nome: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class User(BaseModel):
+    id: int
+    email: str
+    nome: str
+    created_at: datetime
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: User
 
 class AziendaBase(BaseModel):
     ragione_sociale: str
@@ -158,21 +181,152 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==================== MIDDLEWARE AUTENTICAZIONE ====================
+
+security = HTTPBearer()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), conn=Depends(get_db)):
+    """
+    Middleware per verificare il token JWT e ottenere l'utente corrente
+    """
+    token = credentials.credentials
+    payload = decode_access_token(token)
+
+    if not payload:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+
+    user_id = payload.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token non valido")
+
+    # Verifica che l'utente esista nel database
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT id, email, nome, created_at FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    cursor.close()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Utente non trovato")
+
+    return dict(user)
+
+# ==================== ENDPOINTS AUTENTICAZIONE ====================
+
+@app.post("/api/auth/register", response_model=TokenResponse)
+def register(user_data: UserRegister, conn=Depends(get_db)):
+    """
+    Registra un nuovo utente
+    """
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # Verifica se l'email esiste già
+        cursor.execute("SELECT id FROM users WHERE email = %s", (user_data.email,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Email già registrata")
+
+        # Hash della password
+        password_hash = hash_password(user_data.password)
+
+        # Inserisci nuovo utente
+        cursor.execute("""
+            INSERT INTO users (email, password_hash, nome)
+            VALUES (%s, %s, %s)
+            RETURNING id, email, nome, created_at
+        """, (user_data.email, password_hash, user_data.nome))
+
+        user = cursor.fetchone()
+        conn.commit()
+
+        # Crea token JWT
+        access_token = create_access_token(data={"user_id": user["id"], "email": user["email"]})
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"Errore durante registrazione: {e}")
+        raise HTTPException(status_code=500, detail="Errore durante la registrazione")
+    finally:
+        cursor.close()
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+def login(credentials: UserLogin, conn=Depends(get_db)):
+    """
+    Login utente con email e password
+    """
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # Cerca utente per email
+        cursor.execute("""
+            SELECT id, email, nome, password_hash, created_at
+            FROM users WHERE email = %s
+        """, (credentials.email,))
+
+        user = cursor.fetchone()
+
+        if not user or not verify_password(credentials.password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Email o password errati")
+
+        # Aggiorna last_login
+        cursor.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = %s", (user["id"],))
+        conn.commit()
+
+        # Crea token JWT
+        access_token = create_access_token(data={"user_id": user["id"], "email": user["email"]})
+
+        # Rimuovi password_hash dalla risposta
+        user_response = {
+            "id": user["id"],
+            "email": user["email"],
+            "nome": user["nome"],
+            "created_at": user["created_at"]
+        }
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user_response
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Errore durante login: {e}")
+        raise HTTPException(status_code=500, detail="Errore durante il login")
+    finally:
+        cursor.close()
+
+@app.get("/api/auth/me", response_model=User)
+def get_me(current_user: dict = Depends(get_current_user)):
+    """
+    Ottieni informazioni sull'utente corrente
+    """
+    return current_user
+
 # ==================== ENDPOINTS AZIENDE ====================
 
 @app.post("/api/aziende", response_model=dict)
-def create_azienda(azienda: AziendaCreate, conn=Depends(get_db)):
+def create_azienda(azienda: AziendaCreate, current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
     """Crea una nuova azienda"""
     cursor = conn.cursor()
     try:
         cursor.execute("""
             INSERT INTO aziende (
-                ragione_sociale, partita_iva, codice_fiscale,
+                user_id, ragione_sociale, partita_iva, codice_fiscale,
                 indirizzo, citta, cap, provincia,
                 telefono, email, rappresentante_legale
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, created_at
         """, (
+            current_user["id"],
             azienda.ragione_sociale, azienda.partita_iva, azienda.codice_fiscale,
             azienda.indirizzo, azienda.citta, azienda.cap, azienda.provincia,
             azienda.telefono, azienda.email, azienda.rappresentante_legale
@@ -194,21 +348,27 @@ def create_azienda(azienda: AziendaCreate, conn=Depends(get_db)):
         cursor.close()
 
 @app.get("/api/aziende", response_model=List[Azienda])
-def list_aziende(limit: int = 100, conn=Depends(get_db)):
-    """Lista tutte le aziende"""
+def list_aziende(limit: int = 100, current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
+    """Lista tutte le aziende dell'utente corrente"""
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM aziende ORDER BY ragione_sociale LIMIT %s", (limit,))
+        cursor.execute(
+            "SELECT * FROM aziende WHERE user_id = %s ORDER BY ragione_sociale LIMIT %s",
+            (current_user["id"], limit)
+        )
         return cursor.fetchall()
     finally:
         cursor.close()
 
 @app.get("/api/aziende/{azienda_id}", response_model=Azienda)
-def get_azienda(azienda_id: int, conn=Depends(get_db)):
+def get_azienda(azienda_id: int, current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
     """Ottieni dettagli azienda"""
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM aziende WHERE id = %s", (azienda_id,))
+        cursor.execute(
+            "SELECT * FROM aziende WHERE id = %s AND user_id = %s",
+            (azienda_id, current_user["id"])
+        )
         azienda = cursor.fetchone()
         if not azienda:
             raise HTTPException(status_code=404, detail="Azienda non trovata")
@@ -217,7 +377,7 @@ def get_azienda(azienda_id: int, conn=Depends(get_db)):
         cursor.close()
 
 @app.put("/api/aziende/{azienda_id}", response_model=dict)
-def update_azienda(azienda_id: int, azienda: AziendaUpdate, conn=Depends(get_db)):
+def update_azienda(azienda_id: int, azienda: AziendaUpdate, current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
     """Aggiorna azienda"""
     cursor = conn.cursor()
     try:
@@ -231,8 +391,8 @@ def update_azienda(azienda_id: int, azienda: AziendaUpdate, conn=Depends(get_db)
         if not fields:
             return {"message": "Nessun campo da aggiornare"}
 
-        values.append(azienda_id)
-        query = f"UPDATE aziende SET {', '.join(fields)} WHERE id = %s"
+        values.extend([azienda_id, current_user["id"]])
+        query = f"UPDATE aziende SET {', '.join(fields)} WHERE id = %s AND user_id = %s"
         cursor.execute(query, values)
         conn.commit()
 
@@ -247,11 +407,14 @@ def update_azienda(azienda_id: int, azienda: AziendaUpdate, conn=Depends(get_db)
         cursor.close()
 
 @app.delete("/api/aziende/{azienda_id}", response_model=dict)
-def delete_azienda(azienda_id: int, conn=Depends(get_db)):
+def delete_azienda(azienda_id: int, current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
     """Elimina azienda"""
     cursor = conn.cursor()
     try:
-        cursor.execute("DELETE FROM aziende WHERE id = %s", (azienda_id,))
+        cursor.execute(
+            "DELETE FROM aziende WHERE id = %s AND user_id = %s",
+            (azienda_id, current_user["id"])
+        )
         conn.commit()
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Azienda non trovata")
@@ -262,16 +425,16 @@ def delete_azienda(azienda_id: int, conn=Depends(get_db)):
 # ==================== ENDPOINTS VALUTAZIONI ESPOSIZIONE ====================
 
 @app.post("/api/esposizione", response_model=dict)
-def create_valutazione_esposizione(val: ValutazioneEsposizioneCreate, conn=Depends(get_db)):
+def create_valutazione_esposizione(val: ValutazioneEsposizioneCreate, current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
     """Crea valutazione esposizione"""
     cursor = conn.cursor()
     try:
         cursor.execute("""
             INSERT INTO valutazioni_esposizione (
-                azienda_id, mansione, reparto, lex, lpicco, classe_rischio
-            ) VALUES (%s, %s, %s, %s, %s, %s)
+                user_id, azienda_id, mansione, reparto, lex, lpicco, classe_rischio
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id, created_at
-        """, (val.azienda_id, val.mansione, val.reparto, val.lex, val.lpicco, val.classe_rischio))
+        """, (current_user["id"], val.azienda_id, val.mansione, val.reparto, val.lex, val.lpicco, val.classe_rischio))
 
         result = cursor.fetchone()
         valutazione_id = result["id"]
@@ -296,11 +459,14 @@ def create_valutazione_esposizione(val: ValutazioneEsposizioneCreate, conn=Depen
         cursor.close()
 
 @app.get("/api/esposizione", response_model=List[ValutazioneEsposizione])
-def list_valutazioni_esposizione(limit: int = 50, conn=Depends(get_db)):
-    """Lista valutazioni esposizione"""
+def list_valutazioni_esposizione(limit: int = 50, current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
+    """Lista valutazioni esposizione dell'utente corrente"""
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM valutazioni_esposizione ORDER BY created_at DESC LIMIT %s", (limit,))
+        cursor.execute(
+            "SELECT * FROM valutazioni_esposizione WHERE user_id = %s ORDER BY created_at DESC LIMIT %s",
+            (current_user["id"], limit)
+        )
         valutazioni = cursor.fetchall()
 
         result = []
@@ -364,17 +530,18 @@ def delete_valutazione_esposizione(valutazione_id: int, conn=Depends(get_db)):
 # ==================== ENDPOINTS VALUTAZIONI DPI ====================
 
 @app.post("/api/dpi", response_model=dict)
-def create_valutazione_dpi(val: ValutazioneDPICreate, conn=Depends(get_db)):
+def create_valutazione_dpi(val: ValutazioneDPICreate, current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
     """Crea valutazione DPI"""
     cursor = conn.cursor()
     try:
         cursor.execute("""
             INSERT INTO valutazioni_dpi (
-                azienda_id, mansione, reparto, dpi_selezionato,
+                user_id, azienda_id, mansione, reparto, dpi_selezionato,
                 h, m, l, lex_per_dpi, pnr, leff, protezione_adeguata
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, created_at
         """, (
+            current_user["id"],
             val.azienda_id, val.mansione, val.reparto, val.dpi_selezionato,
             val.valori_hml.h, val.valori_hml.m, val.valori_hml.l,
             val.lex_per_dpi, val.pnr, val.leff, val.protezione_adeguata
