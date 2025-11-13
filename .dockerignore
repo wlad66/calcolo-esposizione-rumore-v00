@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+backend/__pycache__
+backend/*.pyc
+backend/.env
+
+# Build output
+dist
+.vite
+
+# Development files
+.git
+.gitignore
+.claude
+*.log
+npm-debug.log*
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+*.test.ts
+*.spec.ts

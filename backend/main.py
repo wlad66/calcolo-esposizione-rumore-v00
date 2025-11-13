@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from typing import List, Optional
 import os
@@ -712,14 +714,53 @@ def health_check():
     """Health check endpoint"""
     return {"status": "ok"}
 
-@app.get("/")
-def root():
-    """Root endpoint"""
-    return {
-        "app": "API Calcolo Esposizione Rumore",
-        "version": "1.0.0",
-        "docs": "/docs"
-    }
+# ==================== SERVE FRONTEND STATICO ====================
+
+# Monta i file statici del frontend
+import pathlib
+static_dir = pathlib.Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+
+    @app.get("/")
+    def serve_frontend():
+        """Serve il frontend React"""
+        index_file = static_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        return {
+            "app": "API Calcolo Esposizione Rumore",
+            "version": "1.0.0",
+            "docs": "/docs",
+            "note": "Frontend non disponibile"
+        }
+
+    # Catch-all per il routing client-side di React
+    @app.get("/{full_path:path}")
+    def serve_spa(full_path: str):
+        """
+        Serve il frontend per tutte le route non-API.
+        Questo permette al router di React di gestire il routing client-side.
+        """
+        # Se la richiesta è per l'API, non intercettare
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Endpoint non trovato")
+
+        # Per tutte le altre route, serve index.html
+        index_file = static_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        raise HTTPException(status_code=404, detail="Frontend non disponibile")
+else:
+    @app.get("/")
+    def root():
+        """Root endpoint (quando frontend non è disponibile)"""
+        return {
+            "app": "API Calcolo Esposizione Rumore",
+            "version": "1.0.0",
+            "docs": "/docs",
+            "note": "Frontend non buildato - cartella static non trovata"
+        }
 
 if __name__ == "__main__":
     import uvicorn

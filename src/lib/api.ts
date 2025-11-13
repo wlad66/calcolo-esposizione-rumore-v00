@@ -2,8 +2,11 @@
  * Client API per comunicare con il backend
  */
 
-// URL del backend deployato su Dokploy (tramite Traefik reverse proxy)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://72.61.189.136';
+// URL del backend
+// In sviluppo: usa variabile d'ambiente o localhost
+// In produzione: usa URL relativo (stesso server)
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (import.meta.env.MODE === 'production' ? '' : 'http://72.61.189.136');
 
 interface ApiResponse<T> {
   data?: T;
