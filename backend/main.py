@@ -49,7 +49,7 @@ class Azienda(AziendaBase):
         from_attributes = True
 
 class MisurazioneAPI(BaseModel):
-    id: int
+    id: Optional[int] = None
     attivita: str
     leq: str
     durata: str

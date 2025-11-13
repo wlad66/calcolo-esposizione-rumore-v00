@@ -25,7 +25,21 @@ async function fetchApi<T>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'Errore sconosciuto' }));
-      throw new Error(errorData.detail || `HTTP ${response.status}`);
+
+      // Gestione errori di validazione FastAPI (422)
+      if (response.status === 422 && Array.isArray(errorData.detail)) {
+        const errorMessages = errorData.detail.map((err: any) => {
+          const field = err.loc ? err.loc.join(' -> ') : 'campo sconosciuto';
+          return `${field}: ${err.msg}`;
+        }).join(', ');
+        throw new Error(`Errore validazione: ${errorMessages}`);
+      }
+
+      // Altri errori
+      const errorMessage = typeof errorData.detail === 'string'
+        ? errorData.detail
+        : `HTTP ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();

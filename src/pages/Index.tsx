@@ -448,7 +448,6 @@ const Index = () => {
       mansione,
       reparto,
       misurazioni: misurazioni.map(m => ({
-        id: m.id,
         attivita: m.attivita,
         leq: m.leq.replace(',', '.'),
         durata: m.durata.replace(',', '.'),
