@@ -69,7 +69,22 @@ async function fetchApi<T>(
     return { data };
   } catch (error) {
     console.error('API Error:', error);
-    return { error: error instanceof Error ? error.message : 'Errore di connessione' };
+
+    // Gestione errori di rete specifici
+    if (error instanceof Error) {
+      // Errore di timeout o rete non disponibile
+      if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+        return { error: 'Impossibile connettersi al server. Verifica la tua connessione internet.' };
+      }
+      // Timeout
+      if (error.message.includes('timeout')) {
+        return { error: 'Il server non risponde. Riprova più tardi.' };
+      }
+      // Altri errori con messaggio
+      return { error: error.message };
+    }
+
+    return { error: 'Si è verificato un errore imprevisto. Riprova.' };
   }
 }
 
@@ -100,6 +115,16 @@ export const esposizioneAPI = {
       '/api/esposizione',
       {
         method: 'POST',
+        body: JSON.stringify(valutazione),
+      }
+    );
+  },
+
+  async aggiorna(id: number, valutazione: ValutazioneEsposizioneAPI) {
+    return fetchApi<{ id: number; message: string }>(
+      `/api/esposizione/${id}`,
+      {
+        method: 'PUT',
         body: JSON.stringify(valutazione),
       }
     );
@@ -147,6 +172,16 @@ export const dpiAPI = {
       '/api/dpi',
       {
         method: 'POST',
+        body: JSON.stringify(valutazione),
+      }
+    );
+  },
+
+  async aggiorna(id: number, valutazione: ValutazioneDPIAPI) {
+    return fetchApi<{ id: number; message: string }>(
+      `/api/dpi/${id}`,
+      {
+        method: 'PUT',
         body: JSON.stringify(valutazione),
       }
     );

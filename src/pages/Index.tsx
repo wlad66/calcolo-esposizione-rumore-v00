@@ -61,6 +61,10 @@ const Index = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Stati per editing valutazioni esistenti
+  const [editingEsposizioneId, setEditingEsposizioneId] = useState<number | null>(null);
+  const [editingDPIId, setEditingDPIId] = useState<number | null>(null);
+
   // Carica lista aziende all'avvio
   useEffect(() => {
     caricaAziende();
@@ -78,6 +82,9 @@ const Index = () => {
       if (dati.reparto) setReparto(dati.reparto);
 
       if (dati.tipo === 'esposizione' && dati.misurazioni) {
+        // Carica ID per editing se presente
+        if (dati.id) setEditingEsposizioneId(dati.id);
+
         // Carica misurazioni per valutazione esposizione
         setMisurazioni(dati.misurazioni.map((m: any) => ({
           id: m.id || Date.now() + Math.random(),
@@ -88,10 +95,13 @@ const Index = () => {
         })));
 
         toast({
-          title: 'Valutazione caricata',
-          description: `Caricata valutazione per ${dati.mansione}`,
+          title: dati.id ? 'Valutazione caricata per modifica' : 'Valutazione caricata',
+          description: `${dati.id ? 'Modifica' : 'Caricata'} valutazione per ${dati.mansione}`,
         });
       } else if (dati.tipo === 'dpi') {
+        // Carica ID per editing se presente
+        if (dati.id) setEditingDPIId(dati.id);
+
         // Carica dati per valutazione DPI
         if (dati.dpi_selezionato) {
           setDpiSelezionato(dati.dpi_selezionato);
@@ -108,8 +118,8 @@ const Index = () => {
         if (dati.lex_per_dpi) setLexPerDPI(dati.lex_per_dpi);
 
         toast({
-          title: 'Valutazione DPI caricata',
-          description: `Caricata valutazione DPI per ${dati.mansione}`,
+          title: dati.id ? 'Valutazione DPI caricata per modifica' : 'Valutazione DPI caricata',
+          description: `${dati.id ? 'Modifica' : 'Caricata'} valutazione DPI per ${dati.mansione}`,
         });
       }
 
@@ -465,7 +475,7 @@ const Index = () => {
 
     setIsSaving(true);
     try {
-      const response = await esposizioneAPI.salva({
+      const valutazioneData = {
         azienda_id: selectedAziendaId,
         mansione,
         reparto,
@@ -478,19 +488,25 @@ const Index = () => {
         lex: lex.toString().replace(',', '.'),
         lpicco: lpicco.toString().replace(',', '.'),
         classe_rischio: riskClass.classe
-      });
+      };
+
+      const response = editingEsposizioneId
+        ? await esposizioneAPI.aggiorna(editingEsposizioneId, valutazioneData)
+        : await esposizioneAPI.salva(valutazioneData);
 
       if (response.error) {
         toast({
-          title: 'Errore nel salvataggio',
+          title: editingEsposizioneId ? 'Errore nell\'aggiornamento' : 'Errore nel salvataggio',
           description: response.error,
           variant: 'destructive'
         });
       } else {
         toast({
-          title: 'Valutazione salvata',
+          title: editingEsposizioneId ? 'Valutazione aggiornata' : 'Valutazione salvata',
           description: `ID: ${response.data?.id}`
         });
+        // Reset editing ID dopo salvataggio
+        setEditingEsposizioneId(null);
       }
     } finally {
       setIsSaving(false);
@@ -553,7 +569,7 @@ const Index = () => {
 
     setIsSaving(true);
     try {
-      const response = await dpiAPI.salva({
+      const valutazioneDPIData = {
         azienda_id: selectedAziendaId,
         mansione,
         reparto,
@@ -567,19 +583,25 @@ const Index = () => {
         pnr: attenuationResults.pnr.replace(',', '.'),
         leff: attenuationResults.leff.replace(',', '.'),
         protezione_adeguata: attenuationResults.protezioneAdeguata
-      });
+      };
+
+      const response = editingDPIId
+        ? await dpiAPI.aggiorna(editingDPIId, valutazioneDPIData)
+        : await dpiAPI.salva(valutazioneDPIData);
 
       if (response.error) {
         toast({
-          title: 'Errore nel salvataggio',
+          title: editingDPIId ? 'Errore nell\'aggiornamento' : 'Errore nel salvataggio',
           description: response.error,
           variant: 'destructive'
         });
       } else {
         toast({
-          title: 'Valutazione DPI salvata',
+          title: editingDPIId ? 'Valutazione DPI aggiornata' : 'Valutazione DPI salvata',
           description: `ID: ${response.data?.id}`
         });
+        // Reset editing ID dopo salvataggio
+        setEditingDPIId(null);
       }
     } finally {
       setIsSaving(false);
@@ -744,7 +766,7 @@ const Index = () => {
                     ) : (
                       <Save className="h-4 w-4 mr-2" />
                     )}
-                    {isSaving ? 'Salvataggio...' : 'Salva'}
+                    {isSaving ? (editingEsposizioneId ? 'Aggiornamento...' : 'Salvataggio...') : (editingEsposizioneId ? 'Aggiorna' : 'Salva')}
                   </Button>
                 </div>
               </div>
@@ -785,7 +807,7 @@ const Index = () => {
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
                 )}
-                {isSaving ? 'Salvataggio...' : 'Salva'}
+                {isSaving ? (editingDPIId ? 'Aggiornamento...' : 'Salvataggio...') : (editingDPIId ? 'Aggiorna' : 'Salva')}
               </Button>
             </div>
 

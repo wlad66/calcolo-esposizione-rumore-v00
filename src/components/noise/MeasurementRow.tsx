@@ -1,6 +1,17 @@
+import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Measurement } from '@/types/noise';
 
 interface MeasurementRowProps {
@@ -10,12 +21,13 @@ interface MeasurementRowProps {
   canRemove: boolean;
 }
 
-export const MeasurementRow = ({ 
-  measurement, 
-  onUpdate, 
-  onRemove, 
-  canRemove 
+export const MeasurementRow = ({
+  measurement,
+  onUpdate,
+  onRemove,
+  canRemove
 }: MeasurementRowProps) => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   return (
     <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr,1fr,1fr,auto] gap-3 items-center p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
       <Input
@@ -60,12 +72,36 @@ export const MeasurementRow = ({
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => onRemove(measurement.id)}
+        onClick={() => setShowDeleteDialog(true)}
         disabled={!canRemove}
         className="hover:bg-destructive/10 hover:text-destructive"
       >
         <Trash2 className="h-4 w-4" />
       </Button>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferma eliminazione</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sei sicuro di voler eliminare questa misurazione{measurement.attivita ? ` "${measurement.attivita}"` : ''}?
+              Questa azione non può essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onRemove(measurement.id);
+                setShowDeleteDialog(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Elimina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

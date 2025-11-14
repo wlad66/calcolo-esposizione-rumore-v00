@@ -769,6 +769,58 @@ def get_valutazione_esposizione(valutazione_id: int, conn=Depends(get_db)):
     finally:
         cursor.close()
 
+@app.put("/api/esposizione/{valutazione_id}", response_model=dict)
+def update_valutazione_esposizione(
+    valutazione_id: int,
+    val: ValutazioneEsposizioneCreate,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db)
+):
+    """Aggiorna valutazione esposizione esistente"""
+    cursor = conn.cursor()
+    try:
+        # Verifica che la valutazione appartenga all'utente corrente
+        cursor.execute(
+            "SELECT id FROM valutazioni_esposizione WHERE id = %s AND user_id = %s",
+            (valutazione_id, current_user["id"])
+        )
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Valutazione non trovata o non autorizzato")
+
+        # Aggiorna valutazione
+        cursor.execute("""
+            UPDATE valutazioni_esposizione
+            SET azienda_id = %s, mansione = %s, reparto = %s,
+                lex = %s, lpicco = %s, classe_rischio = %s
+            WHERE id = %s
+        """, (val.azienda_id, val.mansione, val.reparto, val.lex, val.lpicco,
+              val.classe_rischio, valutazione_id))
+
+        # Elimina misurazioni esistenti
+        cursor.execute("DELETE FROM misurazioni WHERE valutazione_id = %s", (valutazione_id,))
+
+        # Inserisci nuove misurazioni
+        for idx, mis in enumerate(val.misurazioni):
+            cursor.execute("""
+                INSERT INTO misurazioni (
+                    valutazione_id, attivita, leq, durata, lpicco, ordine
+                ) VALUES (%s, %s, %s, %s, %s, %s)
+            """, (valutazione_id, mis.attivita, mis.leq, mis.durata, mis.lpicco, idx))
+
+        conn.commit()
+        return {
+            "id": valutazione_id,
+            "message": "Valutazione aggiornata con successo"
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+
 @app.delete("/api/esposizione/{valutazione_id}", response_model=dict)
 def delete_valutazione_esposizione(valutazione_id: int, conn=Depends(get_db)):
     """Elimina valutazione esposizione"""
@@ -875,6 +927,52 @@ def get_valutazione_dpi(valutazione_id: int, conn=Depends(get_db)):
             "protezione_adeguata": val["protezione_adeguata"],
             "created_at": val["created_at"]
         }
+    finally:
+        cursor.close()
+
+@app.put("/api/dpi/{valutazione_id}", response_model=dict)
+def update_valutazione_dpi(
+    valutazione_id: int,
+    val: ValutazioneDPICreate,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db)
+):
+    """Aggiorna valutazione DPI esistente"""
+    cursor = conn.cursor()
+    try:
+        # Verifica che la valutazione appartenga all'utente corrente
+        cursor.execute(
+            "SELECT id FROM valutazioni_dpi WHERE id = %s AND user_id = %s",
+            (valutazione_id, current_user["id"])
+        )
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Valutazione non trovata o non autorizzato")
+
+        # Aggiorna valutazione DPI
+        cursor.execute("""
+            UPDATE valutazioni_dpi
+            SET azienda_id = %s, mansione = %s, reparto = %s,
+                dpi_selezionato = %s, h = %s, m = %s, l = %s,
+                lex_per_dpi = %s, pnr = %s, leff = %s, protezione_adeguata = %s
+            WHERE id = %s
+        """, (
+            val.azienda_id, val.mansione, val.reparto, val.dpi_selezionato,
+            val.valori_hml.h, val.valori_hml.m, val.valori_hml.l,
+            val.lex_per_dpi, val.pnr, val.leff,
+            val.protezione_adeguata, valutazione_id
+        ))
+
+        conn.commit()
+        return {
+            "id": valutazione_id,
+            "message": "Valutazione DPI aggiornata con successo"
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
 

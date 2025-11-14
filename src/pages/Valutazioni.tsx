@@ -136,6 +136,7 @@ const Valutazioni = () => {
     navigate('/', {
       state: {
         caricaValutazione: {
+          id: val.id,
           tipo: 'esposizione',
           azienda_id: val.azienda_id,
           mansione: val.mansione,
@@ -150,6 +151,7 @@ const Valutazioni = () => {
     navigate('/', {
       state: {
         caricaValutazione: {
+          id: val.id,
           tipo: 'dpi',
           azienda_id: val.azienda_id,
           mansione: val.mansione,
