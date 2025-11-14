@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen, RotateCcw, LogOut, Shield } from 'lucide-react';
+import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen, RotateCcw, LogOut, Shield, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,10 @@ const Index = () => {
     l: ''
   });
   const [lexPerDPI, setLexPerDPI] = useState('');
+
+  // Stati per loading
+  const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Carica lista aziende all'avvio
   useEffect(() => {
@@ -459,32 +463,37 @@ const Index = () => {
       return;
     }
 
-    const response = await esposizioneAPI.salva({
-      azienda_id: selectedAziendaId,
-      mansione,
-      reparto,
-      misurazioni: misurazioni.map(m => ({
-        attivita: m.attivita,
-        leq: m.leq.replace(',', '.'),
-        durata: m.durata.replace(',', '.'),
-        lpicco: m.lpicco.replace(',', '.')
-      })),
-      lex: lex.toString().replace(',', '.'),
-      lpicco: lpicco.toString().replace(',', '.'),
-      classe_rischio: riskClass.classe
-    });
+    setIsSaving(true);
+    try {
+      const response = await esposizioneAPI.salva({
+        azienda_id: selectedAziendaId,
+        mansione,
+        reparto,
+        misurazioni: misurazioni.map(m => ({
+          attivita: m.attivita,
+          leq: m.leq.replace(',', '.'),
+          durata: m.durata.replace(',', '.'),
+          lpicco: m.lpicco.replace(',', '.')
+        })),
+        lex: lex.toString().replace(',', '.'),
+        lpicco: lpicco.toString().replace(',', '.'),
+        classe_rischio: riskClass.classe
+      });
 
-    if (response.error) {
-      toast({
-        title: 'Errore nel salvataggio',
-        description: response.error,
-        variant: 'destructive'
-      });
-    } else {
-      toast({
-        title: 'Valutazione salvata',
-        description: `ID: ${response.data?.id}`
-      });
+      if (response.error) {
+        toast({
+          title: 'Errore nel salvataggio',
+          description: response.error,
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Valutazione salvata',
+          description: `ID: ${response.data?.id}`
+        });
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -542,33 +551,38 @@ const Index = () => {
       return;
     }
 
-    const response = await dpiAPI.salva({
-      azienda_id: selectedAziendaId,
-      mansione,
-      reparto,
-      dpi_selezionato: dpiSelezionato,
-      valori_hml: {
-        h: valoriHML.h.replace(',', '.'),
-        m: valoriHML.m.replace(',', '.'),
-        l: valoriHML.l.replace(',', '.')
-      },
-      lex_per_dpi: lexPerDPI.replace(',', '.'),
-      pnr: attenuationResults.pnr.replace(',', '.'),
-      leff: attenuationResults.leff.replace(',', '.'),
-      protezione_adeguata: attenuationResults.protezioneAdeguata
-    });
+    setIsSaving(true);
+    try {
+      const response = await dpiAPI.salva({
+        azienda_id: selectedAziendaId,
+        mansione,
+        reparto,
+        dpi_selezionato: dpiSelezionato,
+        valori_hml: {
+          h: valoriHML.h.replace(',', '.'),
+          m: valoriHML.m.replace(',', '.'),
+          l: valoriHML.l.replace(',', '.')
+        },
+        lex_per_dpi: lexPerDPI.replace(',', '.'),
+        pnr: attenuationResults.pnr.replace(',', '.'),
+        leff: attenuationResults.leff.replace(',', '.'),
+        protezione_adeguata: attenuationResults.protezioneAdeguata
+      });
 
-    if (response.error) {
-      toast({
-        title: 'Errore nel salvataggio',
-        description: response.error,
-        variant: 'destructive'
-      });
-    } else {
-      toast({
-        title: 'Valutazione DPI salvata',
-        description: `ID: ${response.data?.id}`
-      });
+      if (response.error) {
+        toast({
+          title: 'Errore nel salvataggio',
+          description: response.error,
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Valutazione DPI salvata',
+          description: `ID: ${response.data?.id}`
+        });
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -724,9 +738,13 @@ const Index = () => {
                     <FileText className="h-4 w-4 mr-2" />
                     Word
                   </Button>
-                  <Button variant="default" size="sm" onClick={salvaEsposizione}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Salva
+                  <Button variant="default" size="sm" onClick={salvaEsposizione} disabled={isSaving}>
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {isSaving ? 'Salvataggio...' : 'Salva'}
                   </Button>
                 </div>
               </div>
@@ -761,9 +779,13 @@ const Index = () => {
                 <FileText className="h-4 w-4 mr-2" />
                 Word
               </Button>
-              <Button variant="default" size="sm" onClick={salvaDPI} disabled={!attenuationResults.leff || attenuationResults.leff === '0'}>
-                <Save className="h-4 w-4 mr-2" />
-                Salva
+              <Button variant="default" size="sm" onClick={salvaDPI} disabled={isSaving || !attenuationResults.leff || attenuationResults.leff === '0'}>
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {isSaving ? 'Salvataggio...' : 'Salva'}
               </Button>
             </div>
 
