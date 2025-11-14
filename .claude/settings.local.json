@@ -17,7 +17,9 @@
       "Bash(set DATABASE_URL=postgresql://postgres:2%23NqAWWDX6ZunW5vlG7N@calcoloesposizionerumoremain-rumoredb-zqdpxr:5432/rumore-db)",
       "Bash(python migrate_durata.py:*)",
       "Bash(python:*)",
-      "Bash(if exist nul del /f nul)"
+      "Bash(if exist nul del /f nul)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []

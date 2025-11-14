@@ -6,12 +6,14 @@ from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from typing import List, Optional
 import os
+import secrets
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, EmailStr
-from datetime import datetime
+from datetime import datetime, timedelta
 from auth import hash_password, verify_password, create_access_token, decode_access_token
+import resend
 
 load_dotenv()
 
@@ -26,6 +28,13 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 class User(BaseModel):
     id: int
@@ -314,6 +323,130 @@ def get_me(current_user: dict = Depends(get_current_user)):
     Ottieni informazioni sull'utente corrente
     """
     return current_user
+
+@app.post("/api/auth/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, conn=Depends(get_db)):
+    """
+    Richiedi reset password - genera token e invia email
+    """
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # Verifica che l'utente esista
+        cursor.execute("SELECT id, email, nome FROM users WHERE email = %s", (request.email,))
+        user = cursor.fetchone()
+
+        if not user:
+            # Per sicurezza, non rivelare se l'email esiste o meno
+            return {"message": "Se l'email esiste, riceverai un link per reimpostare la password"}
+
+        # Genera token sicuro
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.now() + timedelta(hours=1)  # Token valido per 1 ora
+
+        # Salva token nel database
+        cursor.execute("""
+            INSERT INTO password_reset_tokens (user_id, token, expires_at)
+            VALUES (%s, %s, %s)
+        """, (user["id"], token, expires_at))
+        conn.commit()
+
+        # Configura Resend
+        resend.api_key = os.getenv("RESEND_API_KEY")
+
+        # URL per reset (in produzione sarà il dominio reale)
+        reset_url = f"{os.getenv('FRONTEND_URL', 'http://72.61.189.136')}/reset-password?token={token}"
+
+        # Invia email
+        try:
+            resend.Emails.send({
+                "from": os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev"),
+                "to": user["email"],
+                "subject": "Recupero Password - Calcolo Esposizione Rumore",
+                "html": f"""
+                    <h2>Recupero Password</h2>
+                    <p>Ciao {user['nome']},</p>
+                    <p>Hai richiesto di reimpostare la tua password.</p>
+                    <p>Clicca sul link seguente per procedere:</p>
+                    <p><a href="{reset_url}">Reimposta Password</a></p>
+                    <p>Il link è valido per 1 ora.</p>
+                    <p>Se non hai richiesto tu questa operazione, ignora questa email.</p>
+                    <br>
+                    <p>Cordiali saluti,<br>Il team di Calcolo Esposizione Rumore</p>
+                """
+            })
+        except Exception as email_error:
+            print(f"Errore invio email: {email_error}")
+            # Non bloccare l'operazione se l'email fallisce
+            # In sviluppo, stampa il link nel log
+            print(f"🔗 Link reset password: {reset_url}")
+
+        return {"message": "Se l'email esiste, riceverai un link per reimpostare la password"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"Errore durante richiesta reset password: {e}")
+        raise HTTPException(status_code=500, detail="Errore durante la richiesta di reset password")
+    finally:
+        cursor.close()
+
+@app.post("/api/auth/reset-password")
+def reset_password(request: ResetPasswordRequest, conn=Depends(get_db)):
+    """
+    Reimposta password usando il token ricevuto via email
+    """
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # Verifica token
+        cursor.execute("""
+            SELECT user_id, expires_at, used
+            FROM password_reset_tokens
+            WHERE token = %s
+        """, (request.token,))
+
+        token_data = cursor.fetchone()
+
+        if not token_data:
+            raise HTTPException(status_code=400, detail="Token non valido")
+
+        if token_data["used"]:
+            raise HTTPException(status_code=400, detail="Token già utilizzato")
+
+        if datetime.now() > token_data["expires_at"]:
+            raise HTTPException(status_code=400, detail="Token scaduto")
+
+        # Hash nuova password
+        new_password_hash = hash_password(request.new_password)
+
+        # Aggiorna password
+        cursor.execute("""
+            UPDATE users
+            SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (new_password_hash, token_data["user_id"]))
+
+        # Marca token come usato
+        cursor.execute("""
+            UPDATE password_reset_tokens
+            SET used = TRUE
+            WHERE token = %s
+        """, (request.token,))
+
+        conn.commit()
+
+        return {"message": "Password reimpostata con successo"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"Errore durante reset password: {e}")
+        raise HTTPException(status_code=500, detail="Errore durante il reset della password")
+    finally:
+        cursor.close()
 
 # ==================== ADMIN MIDDLEWARE ====================
 
