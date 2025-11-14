@@ -428,19 +428,6 @@ def delete_user(user_id: int, current_user: dict = Depends(get_admin_user), conn
     finally:
         cursor.close()
 
-# ==================== DEBUG ENDPOINT (TEMPORANEO) ====================
-
-@app.get("/api/debug/users")
-def debug_users(conn=Depends(get_db)):
-    """Endpoint di debug per vedere tutti gli utenti con is_admin"""
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    try:
-        cursor.execute("SELECT id, email, nome, is_admin FROM users ORDER BY id")
-        users = cursor.fetchall()
-        return [dict(u) for u in users]
-    finally:
-        cursor.close()
-
 # ==================== ENDPOINTS AZIENDE ====================
 
 @app.post("/api/aziende", response_model=dict)
