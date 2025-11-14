@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen, RotateCcw, LogOut } from 'lucide-react';
+import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen, RotateCcw, LogOut, Shield } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ import { AziendaForm } from '@/components/aziende/AziendaForm';
 const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const [mansione, setMansione] = useState('');
   const [reparto, setReparto] = useState('');
   const [misurazioni, setMisurazioni] = useState<Measurement[]>([{
@@ -638,6 +638,14 @@ const Index = () => {
                     Gestione Aziende
                   </Button>
                 </Link>
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="outline" className="border-red-200 text-red-700 hover:bg-red-50">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
               </div>
               <div className="flex items-center gap-2 border-l pl-3">
                 <span className="text-sm text-muted-foreground">
