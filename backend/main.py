@@ -31,6 +31,7 @@ class User(BaseModel):
     id: int
     email: str
     nome: str
+    is_admin: bool
     created_at: datetime
 
 class TokenResponse(BaseModel):
@@ -203,7 +204,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
     # Verifica che l'utente esista nel database
     cursor = conn.cursor(cursor_factory=RealDictCursor)
-    cursor.execute("SELECT id, email, nome, created_at FROM users WHERE id = %s", (user_id,))
+    cursor.execute("SELECT id, email, nome, is_admin, created_at FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
     cursor.close()
 
@@ -234,7 +235,7 @@ def register(user_data: UserRegister, conn=Depends(get_db)):
         cursor.execute("""
             INSERT INTO users (email, password_hash, nome)
             VALUES (%s, %s, %s)
-            RETURNING id, email, nome, created_at
+            RETURNING id, email, nome, is_admin, created_at
         """, (user_data.email, password_hash, user_data.nome))
 
         user = cursor.fetchone()
@@ -268,7 +269,7 @@ def login(credentials: UserLogin, conn=Depends(get_db)):
     try:
         # Cerca utente per email
         cursor.execute("""
-            SELECT id, email, nome, password_hash, created_at
+            SELECT id, email, nome, is_admin, password_hash, created_at
             FROM users WHERE email = %s
         """, (credentials.email,))
 
@@ -289,6 +290,7 @@ def login(credentials: UserLogin, conn=Depends(get_db)):
             "id": user["id"],
             "email": user["email"],
             "nome": user["nome"],
+            "is_admin": user["is_admin"],
             "created_at": user["created_at"]
         }
 
@@ -312,6 +314,119 @@ def get_me(current_user: dict = Depends(get_current_user)):
     Ottieni informazioni sull'utente corrente
     """
     return current_user
+
+# ==================== ADMIN MIDDLEWARE ====================
+
+def get_admin_user(current_user: dict = Depends(get_current_user)):
+    """
+    Middleware per verificare che l'utente sia un amministratore
+    """
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Accesso negato. Permessi di amministratore richiesti.")
+    return current_user
+
+# ==================== ENDPOINTS ADMIN ====================
+
+@app.get("/api/admin/users")
+def get_all_users(current_user: dict = Depends(get_admin_user), conn=Depends(get_db)):
+    """
+    Ottieni tutti gli utenti con i conteggi dei loro dati
+    Solo per amministratori
+    """
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # Ottieni tutti gli utenti
+        cursor.execute("""
+            SELECT
+                u.id,
+                u.email,
+                u.nome,
+                u.is_admin,
+                u.created_at,
+                u.last_login,
+                COUNT(DISTINCT a.id) as num_aziende,
+                COUNT(DISTINCT ve.id) as num_valutazioni_esposizione,
+                COUNT(DISTINCT vd.id) as num_valutazioni_dpi
+            FROM users u
+            LEFT JOIN aziende a ON a.user_id = u.id
+            LEFT JOIN valutazioni_esposizione ve ON ve.user_id = u.id
+            LEFT JOIN valutazioni_dpi vd ON vd.user_id = u.id
+            GROUP BY u.id, u.email, u.nome, u.is_admin, u.created_at, u.last_login
+            ORDER BY u.created_at DESC
+        """)
+
+        users = cursor.fetchall()
+        return [dict(user) for user in users]
+
+    except Exception as e:
+        print(f"Errore durante recupero utenti: {e}")
+        raise HTTPException(status_code=500, detail="Errore durante il recupero degli utenti")
+    finally:
+        cursor.close()
+
+@app.delete("/api/admin/users/{user_id}")
+def delete_user(user_id: int, current_user: dict = Depends(get_admin_user), conn=Depends(get_db)):
+    """
+    Elimina un utente e tutti i suoi dati collegati (CASCADE)
+    Solo per amministratori
+    """
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # Verifica che l'utente non stia eliminando se stesso
+        if user_id == current_user["id"]:
+            raise HTTPException(status_code=400, detail="Non puoi eliminare il tuo stesso account")
+
+        # Verifica che l'utente esista
+        cursor.execute("SELECT id, email, nome FROM users WHERE id = %s", (user_id,))
+        user_to_delete = cursor.fetchone()
+
+        if not user_to_delete:
+            raise HTTPException(status_code=404, detail="Utente non trovato")
+
+        # Ottieni conteggi dati prima di eliminare
+        cursor.execute("""
+            SELECT
+                COUNT(DISTINCT a.id) as num_aziende,
+                COUNT(DISTINCT ve.id) as num_valutazioni_esposizione,
+                COUNT(DISTINCT vd.id) as num_valutazioni_dpi
+            FROM users u
+            LEFT JOIN aziende a ON a.user_id = u.id
+            LEFT JOIN valutazioni_esposizione ve ON ve.user_id = u.id
+            LEFT JOIN valutazioni_dpi vd ON vd.user_id = u.id
+            WHERE u.id = %s
+            GROUP BY u.id
+        """, (user_id,))
+
+        counts = cursor.fetchone()
+
+        # Elimina l'utente (CASCADE eliminerà automaticamente tutti i dati collegati)
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        conn.commit()
+
+        return {
+            "message": "Utente eliminato con successo",
+            "deleted_user": {
+                "id": user_to_delete["id"],
+                "email": user_to_delete["email"],
+                "nome": user_to_delete["nome"]
+            },
+            "deleted_data": {
+                "aziende": counts["num_aziende"] if counts else 0,
+                "valutazioni_esposizione": counts["num_valutazioni_esposizione"] if counts else 0,
+                "valutazioni_dpi": counts["num_valutazioni_dpi"] if counts else 0
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"Errore durante eliminazione utente: {e}")
+        raise HTTPException(status_code=500, detail="Errore durante l'eliminazione dell'utente")
+    finally:
+        cursor.close()
 
 # ==================== ENDPOINTS AZIENDE ====================
 

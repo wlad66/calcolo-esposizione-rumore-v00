@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     nome VARCHAR(255) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP
@@ -143,9 +144,17 @@ CREATE TRIGGER update_aziende_updated_at
 """
 
 SQL_MIGRATION = """
--- Migrazioni: Aggiunta user_id alle tabelle esistenti
+-- Migrazioni: Aggiunta user_id e is_admin alle tabelle esistenti
 DO $$
 BEGIN
+    -- Aggiungi is_admin a users se non esiste
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='users' AND column_name='is_admin'
+    ) THEN
+        ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
+    END IF;
+
     -- Aggiungi user_id a aziende se non esiste (nullable per dati esistenti)
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
