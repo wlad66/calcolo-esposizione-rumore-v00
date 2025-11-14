@@ -70,10 +70,13 @@ export const DPISelector = ({
               id="h-value"
               type="number"
               step="0.1"
+              min="0"
+              max="50"
               value={valoriHML.h}
               onChange={(e) => onHMLChange('h', e.target.value)}
               placeholder="0"
               className="mt-2"
+              title="Attenuazione alte frequenze: 0-50 dB"
             />
           </div>
           <div>
@@ -82,10 +85,13 @@ export const DPISelector = ({
               id="m-value"
               type="number"
               step="0.1"
+              min="0"
+              max="50"
               value={valoriHML.m}
               onChange={(e) => onHMLChange('m', e.target.value)}
               placeholder="0"
               className="mt-2"
+              title="Attenuazione medie frequenze: 0-50 dB"
             />
           </div>
           <div>
@@ -94,10 +100,13 @@ export const DPISelector = ({
               id="l-value"
               type="number"
               step="0.1"
+              min="0"
+              max="50"
               value={valoriHML.l}
               onChange={(e) => onHMLChange('l', e.target.value)}
               placeholder="0"
               className="mt-2"
+              title="Attenuazione basse frequenze: 0-50 dB"
             />
           </div>
         </div>
@@ -108,10 +117,13 @@ export const DPISelector = ({
             id="lex-dpi"
             type="number"
             step="0.1"
+            min="0"
+            max="140"
             value={lexPerDPI}
             onChange={(e) => onLexChange(e.target.value)}
             placeholder={lexCalcolato.toFixed(1)}
             className="mt-2"
+            title="Livello di esposizione: 0-140 dB(A)"
           />
           <p className="text-sm text-muted-foreground mt-1">
             Lascia vuoto per usare il LEX calcolato ({lexCalcolato.toFixed(1)} dB(A))

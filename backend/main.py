@@ -184,7 +184,12 @@ app = FastAPI(
 )
 
 # CORS
-origins = os.getenv("CORS_ORIGINS", "*").split(",")
+cors_origins = os.getenv("CORS_ORIGINS")
+if not cors_origins:
+    print("⚠️  WARNING: CORS_ORIGINS not set. Using wildcard '*' (unsafe for production!)")
+    cors_origins = "*"
+
+origins = cors_origins.split(",") if cors_origins != "*" else ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

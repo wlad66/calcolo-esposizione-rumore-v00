@@ -27,26 +27,35 @@ export const MeasurementRow = ({
       <Input
         type="number"
         step="0.1"
-        placeholder="LEQ"
+        min="0"
+        max="140"
+        placeholder="LEQ (dB)"
         value={measurement.leq}
         onChange={(e) => onUpdate(measurement.id, 'leq', e.target.value)}
         className="text-center"
+        title="Livello equivalente: 0-140 dB(A)"
       />
       <Input
         type="number"
         step="1"
+        min="0"
+        max="480"
         placeholder="Minuti"
         value={measurement.durata}
         onChange={(e) => onUpdate(measurement.id, 'durata', e.target.value)}
         className="text-center"
+        title="Durata esposizione: 0-480 minuti (8 ore)"
       />
       <Input
         type="number"
         step="0.1"
-        placeholder="Lpicco"
+        min="0"
+        max="200"
+        placeholder="Lpicco (dB)"
         value={measurement.lpicco}
         onChange={(e) => onUpdate(measurement.id, 'lpicco', e.target.value)}
         className="text-center"
+        title="Livello di picco: 0-200 dB(C)"
       />
       <Button
         variant="ghost"
