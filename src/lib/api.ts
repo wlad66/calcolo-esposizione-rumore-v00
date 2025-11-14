@@ -18,16 +18,36 @@ async function fetchApi<T>(
   options?: RequestInit
 ): Promise<ApiResponse<T>> {
   try {
+    // Recupera il token dal localStorage
+    const token = localStorage.getItem('auth_token');
+
+    // Prepara gli headers con il token se presente
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'Errore sconosciuto' }));
+
+      // Gestione errore 401 Unauthorized - Token scaduto o non valido
+      if (response.status === 401) {
+        // Rimuovi token e user dal localStorage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        // Ricarica la pagina per forzare il redirect al login
+        window.location.href = '/login';
+        throw new Error('Sessione scaduta. Effettua nuovamente il login.');
+      }
 
       // Gestione errori di validazione FastAPI (422)
       if (response.status === 422 && Array.isArray(errorData.detail)) {

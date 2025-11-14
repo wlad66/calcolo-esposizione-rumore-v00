@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen, RotateCcw } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Download, Plus, Upload, FileSpreadsheet, Calculator, Printer, FileText, Save, List, Building2, FolderOpen, RotateCcw, LogOut } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +31,8 @@ import { AziendaForm } from '@/components/aziende/AziendaForm';
 
 const Index = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [mansione, setMansione] = useState('');
   const [reparto, setReparto] = useState('');
   const [misurazioni, setMisurazioni] = useState<Measurement[]>([{
@@ -588,6 +591,15 @@ const Index = () => {
     });
   };
 
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: 'Disconnesso',
+      description: 'Arrivederci!'
+    });
+    navigate('/login');
+  };
+
   const lex = calcolaLEX(misurazioni);
   const lpicco = getLpiccoMax(misurazioni);
   const riskClass = getClasseRischio(lex);
@@ -608,23 +620,34 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={nuovaValutazione}>
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Nuova Valutazione
-              </Button>
-              <Link to="/valutazioni">
-                <Button variant="outline">
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Storico Valutazioni
+            <div className="flex items-center gap-3">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={nuovaValutazione}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Nuova Valutazione
                 </Button>
-              </Link>
-              <Link to="/aziende">
-                <Button variant="outline">
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Gestione Aziende
+                <Link to="/valutazioni">
+                  <Button variant="outline">
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Storico Valutazioni
+                  </Button>
+                </Link>
+                <Link to="/aziende">
+                  <Button variant="outline">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Gestione Aziende
+                  </Button>
+                </Link>
+              </div>
+              <div className="flex items-center gap-2 border-l pl-3">
+                <span className="text-sm text-muted-foreground">
+                  {user?.nome}
+                </span>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Esci
                 </Button>
-              </Link>
+              </div>
             </div>
           </div>
         </header>
