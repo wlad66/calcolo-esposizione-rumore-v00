@@ -608,7 +608,8 @@ const Index = () => {
   return <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         <header className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          {/* Barra superiore: Titolo + Info Utente */}
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-primary rounded-lg">
                 <Calculator className="h-8 w-8 text-primary-foreground" />
@@ -620,43 +621,43 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={nuovaValutazione}>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Nuova Valutazione
-                </Button>
-                <Link to="/valutazioni">
-                  <Button variant="outline">
-                    <FolderOpen className="h-4 w-4 mr-2" />
-                    Storico Valutazioni
-                  </Button>
-                </Link>
-                <Link to="/aziende">
-                  <Button variant="outline">
-                    <Building2 className="h-4 w-4 mr-2" />
-                    Gestione Aziende
-                  </Button>
-                </Link>
-                {isAdmin && (
-                  <Link to="/admin">
-                    <Button variant="outline" className="border-red-200 text-red-700 hover:bg-red-50">
-                      <Shield className="h-4 w-4 mr-2" />
-                      Admin
-                    </Button>
-                  </Link>
-                )}
-              </div>
-              <div className="flex items-center gap-2 border-l pl-3">
-                <span className="text-sm text-muted-foreground">
-                  {user?.nome}
-                </span>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Esci
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {user?.nome}
+              </span>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Esci
+              </Button>
             </div>
+          </div>
+
+          {/* Barra di navigazione */}
+          <div className="flex items-center gap-2 p-4 bg-card rounded-lg border shadow-sm">
+            <Button variant="outline" onClick={nuovaValutazione} className="flex-1 sm:flex-none">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Nuova Valutazione
+            </Button>
+            <Link to="/valutazioni" className="flex-1 sm:flex-none">
+              <Button variant="outline" className="w-full">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Storico Valutazioni
+              </Button>
+            </Link>
+            <Link to="/aziende" className="flex-1 sm:flex-none">
+              <Button variant="outline" className="w-full">
+                <Building2 className="h-4 w-4 mr-2" />
+                Gestione Aziende
+              </Button>
+            </Link>
+            {isAdmin && (
+              <Link to="/admin" className="flex-1 sm:flex-none">
+                <Button variant="outline" className="w-full border-red-200 text-red-700 hover:bg-red-50">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
+              </Link>
+            )}
           </div>
         </header>
 
