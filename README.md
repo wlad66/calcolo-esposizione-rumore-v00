@@ -1,73 +1,66 @@
-# Welcome to your Lovable project
+# Calcolatore Esposizione Rumore
 
-## Project info
+Applicazione web professionale per il calcolo dell'esposizione al rumore secondo D.Lgs. 81/2008 e UNI EN 458:2016.
 
-**URL**: https://lovable.dev/projects/564caad3-012b-486a-a8a4-ee579d9e60ea
+## Quick Start
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/564caad3-012b-486a-a8a4-ee579d9e60ea) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Frontend
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Backend
+```bash
+cd backend
+pip install -r requirements.txt
+python main.py
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Documentazione
 
-**Use GitHub Codespaces**
+Tutta la documentazione è disponibile nella cartella [docs/](docs/):
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **[DOCUMENTAZIONE.md](docs/DOCUMENTAZIONE.md)** - Documentazione completa del progetto
+  - Tecnologie utilizzate
+  - Funzionalità
+  - Struttura progetto
+  - Database schema
+  - Configurazione e deployment
+  - Sicurezza
+  - Miglioramenti recenti
 
-## What technologies are used for this project?
+- **[BACKEND_README.md](docs/BACKEND_README.md)** - Guida specifica backend
+  - Setup locale
+  - Deploy su cloud (AWS, Docker)
+  - Endpoints API
+  - Database PostgreSQL
 
-This project is built with:
+## Tecnologie Principali
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Frontend**: React 18 + TypeScript + Vite + TailwindCSS + Shadcn/ui
+- **Backend**: FastAPI (Python) + PostgreSQL + JWT
+- **Deployment**: Docker + Dokploy
 
-## How can I deploy this project?
+## URL Applicazione
 
-Simply open [Lovable](https://lovable.dev/projects/564caad3-012b-486a-a8a4-ee579d9e60ea) and click on Share -> Publish.
+- **Produzione**: http://72.61.189.136
+- **Sviluppo**: http://localhost:5173
 
-## Can I connect a custom domain to my Lovable project?
+## Funzionalità Chiave
 
-Yes, you can!
+- Calcolo esposizione rumore (LEX, Lpicco)
+- Valutazione DPI con metodi HML/SNR/ottava
+- Gestione aziende con validazione P.IVA/CF
+- Export CSV, PDF, Word
+- Sistema autenticazione completo
+- Pannello amministratore
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Supporto
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Email**: info@aqrgroup.it
+- **Repository**: https://github.com/wlad66/calcolo-esposizione-rumore-v00
+
+## Licenza
+
+Proprietario: AQR Group

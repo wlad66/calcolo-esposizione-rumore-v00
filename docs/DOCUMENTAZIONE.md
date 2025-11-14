@@ -34,22 +34,29 @@ Applicazione web professionale per il calcolo dell'esposizione al rumore secondo
 
 ### 2. Gestione Aziende
 - ✅ CRUD completo aziende
-- ✅ Validazione P.IVA e CF
+- ✅ Validazione P.IVA con algoritmo checksum completo
+- ✅ Validazione Codice Fiscale con tabelle caratteri pari/dispari
+- ✅ Feedback visivo real-time (icone verde/rosso)
 - ✅ Ricerca e filtri
 - ✅ Associazione valutazioni
 
 ### 3. Calcolo Esposizione Rumore
-- ✅ Inserimento misurazioni multiple
+- ✅ Inserimento misurazioni multiple con validazione input
+- ✅ Validazione range valori (LEQ: 0-140 dB, Durata: 0-480 min, Lpicco: 0-200 dB)
 - ✅ Calcolo automatico LEX e Lpicco
 - ✅ Classificazione rischio automatica
-- ✅ Salvataggio valutazioni
-- ✅ Storico valutazioni
+- ✅ Salvataggio e modifica valutazioni esistenti
+- ✅ Storico valutazioni con funzione "Carica per modificare"
+- ✅ Conferma eliminazione con dialog
+- ✅ Loading states durante salvataggio/export
 
 ### 4. Valutazione DPI
 - ✅ Database DPI integrato
 - ✅ Calcolo attenuazione (metodi HML, SNR, ottava)
+- ✅ Validazione input H, M, L e LEX con range values
 - ✅ Verifica protezione adeguata
 - ✅ Valori personalizzabili
+- ✅ Salvataggio e modifica valutazioni esistenti
 
 ### 5. Export e Report
 - ✅ Export CSV
@@ -135,11 +142,23 @@ calcolo-esposizione-rumore-main/
 DATABASE_URL=postgresql://user:password@host:port/database
 PORT=8000
 HOST=0.0.0.0
-CORS_ORIGINS=*
+
+# REQUIRED - Secret key per JWT
+# Genera con: python -c 'import secrets; print(secrets.token_urlsafe(32))'
+SECRET_KEY=your-secret-key-here-CHANGE-THIS
+
+# CORS - Specificare origine frontend (NON usare * in produzione)
+CORS_ORIGINS=http://yourdomain.com
+
+# Email service
 RESEND_API_KEY=re_xxxxx
 RESEND_FROM_EMAIL=noreply@dominio.it
+
+# Frontend URL per link recupero password
 FRONTEND_URL=http://yourdomain.com
 ```
+
+**IMPORTANTE**: Il file `backend/.env.example` contiene un template completo con tutte le variabili necessarie.
 
 ### Variabili d'Ambiente (Frontend)
 
@@ -197,12 +216,55 @@ Permette di:
 ## Sicurezza
 
 - ✅ Password hashate con bcrypt
-- ✅ Autenticazione JWT
+- ✅ Autenticazione JWT con SECRET_KEY obbligatoria
 - ✅ Token recupero password monouso e con scadenza
-- ✅ Validazione input lato server
+- ✅ Validazione input lato client (HTML5 constraints)
+- ✅ Validazione input lato server (FastAPI Pydantic)
 - ✅ Protezione SQL injection (parametrized queries)
-- ✅ CORS configurabile
+- ✅ CORS configurabile con warning se wildcard
 - ✅ Isolamento dati multi-tenant
+- ✅ Gestione errori migliorata (messaggi specifici per rete/timeout)
+- ✅ Verifica ownership prima di modifiche/eliminazioni
+
+## Miglioramenti Recenti
+
+### Versione 2.0 - Dicembre 2025
+
+#### Sicurezza
+- **SECRET_KEY obbligatoria**: Rimossa pericolosa default, ora richiesta da variabile d'ambiente
+- **CORS security**: Aggiunto warning se configurato con wildcard in produzione
+- **Validazione P.IVA**: Implementato algoritmo checksum completo per Partita IVA italiana
+- **Validazione CF**: Implementato algoritmo completo con tabelle caratteri pari/dispari per Codice Fiscale
+
+#### UX Improvements
+- **Loading states**: Spinner e testo dinamico durante salvataggio/export valutazioni
+- **Feedback visivo**: Icone verde (CheckCircle) e rosso (AlertCircle) per validazione P.IVA/CF in tempo reale
+- **Confirmation dialogs**: Dialog di conferma per tutte le operazioni di eliminazione (valutazioni, misurazioni, aziende)
+- **Error messages**: Messaggi di errore specifici per problemi di rete, timeout, validazione
+
+#### Funzionalità
+- **Modifica valutazioni**: Possibilità di modificare valutazioni esistenti (esposizione e DPI)
+  - Endpoint PUT `/api/esposizione/{id}` e `/api/dpi/{id}`
+  - Metodi `aggiorna()` nell'API client frontend
+  - Pulsante "Carica" nello storico che popola il form per la modifica
+  - Cambio dinamico pulsante "Salva" → "Aggiorna"
+- **Validazione input migliorata**:
+  - LEQ: range 0-140 dB(A) con tooltip
+  - Durata: range 0-480 minuti con tooltip
+  - Lpicco: range 0-200 dB(C) con tooltip
+  - H, M, L (DPI): range 0-50 dB
+  - Tutti i campi numerici con step appropriati
+
+#### File Creati/Modificati
+- `backend/.env.example` - Template variabili d'ambiente
+- `backend/auth.py` - SECRET_KEY obbligatoria
+- `backend/main.py` - Endpoint PUT, warning CORS
+- `src/lib/api.ts` - Metodi aggiorna(), error handling migliorato
+- `src/pages/Index.tsx` - Loading states, edit tracking
+- `src/pages/Valutazioni.tsx` - Passa ID per modifica
+- `src/components/aziende/AziendaForm.tsx` - Validazione P.IVA/CF completa
+- `src/components/noise/MeasurementRow.tsx` - Validazione input, confirmation dialog
+- `src/components/noise/DPISelector.tsx` - Validazione input H/M/L/LEX
 
 ## Normativa di Riferimento
 
