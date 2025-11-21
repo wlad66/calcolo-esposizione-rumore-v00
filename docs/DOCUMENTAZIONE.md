@@ -266,6 +266,103 @@ Permette di:
 - `src/components/noise/MeasurementRow.tsx` - Validazione input, confirmation dialog
 - `src/components/noise/DPISelector.tsx` - Validazione input H/M/L/LEX
 
+## Deployment Produzione
+
+### URL Applicazione
+**`https://rumore.safetyprosuite.com`** 🔒
+
+### Infrastruttura
+- **Hosting**: Hostinger VPS (Ubuntu 24.04)
+- **IP Server**: 72.61.189.136
+- **Container Platform**: Docker + Dokploy
+- **Reverse Proxy**: Nginx
+- **SSL/TLS**: Let's Encrypt (rinnovo automatico)
+
+### Configurazione Dominio
+**DNS (Hostinger)**:
+```
+Type: A
+Name: rumore
+Points to: 72.61.189.136
+TTL: 14400
+```
+
+### Configurazione Nginx
+**File**: `/etc/nginx/sites-available/rumore.safetyprosuite.com`
+
+```nginx
+server {
+    server_name rumore.safetyprosuite.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    listen 443 ssl http2;
+    ssl_certificate /etc/letsencrypt/live/rumore.safetyprosuite.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/rumore.safetyprosuite.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+server {
+    listen 80;
+    server_name rumore.safetyprosuite.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+### Firewall (Hostinger)
+**Porte aperte**:
+- `80` (HTTP) - Redirect to HTTPS
+- `443` (HTTPS) - Applicazione principale
+- `3000` (TCP) - Dokploy panel
+- `8000` (TCP) - Container backend (opzionale)
+
+### Certificato SSL
+- **Provider**: Let's Encrypt
+- **Validità**: 90 giorni
+- **Rinnovo**: Automatico via certbot
+- **Comando rinnovo**: `certbot renew` (eseguito automaticamente da cron)
+
+### Variabili d'Ambiente Produzione
+```env
+DATABASE_URL=postgresql://postgres:***@host:5432/rumore-db
+PORT=8000
+HOST=0.0.0.0
+SECRET_KEY=*** (generata con secrets.token_urlsafe(32))
+CORS_ORIGINS=https://rumore.safetyprosuite.com
+RESEND_API_KEY=re_***
+RESEND_FROM_EMAIL=noreply@puntodiraccolta.com
+FRONTEND_URL=https://rumore.safetyprosuite.com
+```
+
+### Performance
+- **Tempo risposta backend**: ~2 secondi
+- **Tempo caricamento totale**: ~2-3 secondi
+- **HTTPS overhead**: Minimo (HTTP/2 abilitato)
+
+### Monitoraggio
+- **Logs Nginx**: `/var/log/nginx/access.log` e `/var/log/nginx/error.log`
+- **Logs Container**: `docker logs calcoloesposizionerumoremain-rumorebackend-k55sdg`
+- **Status Container**: `docker ps`
+
+### Manutenzione
+- **Aggiornamento app**: Git push → Dokploy autodeploy
+- **Rinnovo SSL**: Automatico (certbot renew)
+- **Backup database**: Configurato in Dokploy
+- **Aggiornamenti sistema**: `apt update && apt upgrade`
+
+---
+
 ## Normativa di Riferimento
 
 - **D.Lgs. 81/2008** - Testo Unico sulla Sicurezza sul Lavoro
