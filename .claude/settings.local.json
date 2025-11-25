@@ -19,7 +19,14 @@
       "Bash(python:*)",
       "Bash(if exist nul del /f nul)",
       "Bash(git pull:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(dir:*)",
+      "Bash(move \"C:\\PROGRAMMAZIONE\\calcolo-esposizione-rumore-main\\README.md\" \"C:\\PROGRAMMAZIONE\\calcolo-esposizione-rumore-main\\docs\\README.md\")",
+      "Bash(move \"C:\\PROGRAMMAZIONE\\calcolo-esposizione-rumore-main\\DOCUMENTAZIONE.md\" \"C:\\PROGRAMMAZIONE\\calcolo-esposizione-rumore-main\\docs\\DOCUMENTAZIONE.md\")",
+      "Bash(move \"C:\\PROGRAMMAZIONE\\calcolo-esposizione-rumore-main\\backend\\README.md\" \"C:\\PROGRAMMAZIONE\\calcolo-esposizione-rumore-main\\docs\\BACKEND_README.md\")",
+      "Bash(move README.md docsREADME.md)",
+      "Bash(move:*)",
+      "Bash(move backendREADME.md docsBACKEND_README.md)"
     ],
     "deny": [],
     "ask": []

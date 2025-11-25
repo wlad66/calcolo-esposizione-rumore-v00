@@ -14,6 +14,7 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 from auth import hash_password, verify_password, create_access_token, decode_access_token
 import resend
+from storage import storage
 
 load_dotenv()
 
@@ -452,6 +453,25 @@ def reset_password(request: ResetPasswordRequest, conn=Depends(get_db)):
         raise HTTPException(status_code=500, detail="Errore durante il reset della password")
     finally:
         cursor.close()
+
+# ==================== ENDPOINTS UPLOAD ====================
+
+@app.post("/api/upload")
+async def upload_file(file: UploadFile, current_user: dict = Depends(get_current_user)):
+    """
+    Carica un file su Backblaze B2 e restituisce l'URL
+    """
+    if not storage.s3_client:
+        raise HTTPException(status_code=503, detail="Servizio di storage non configurato")
+    
+    try:
+        url = storage.upload_file(file)
+        return {"url": url, "filename": file.filename}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Errore upload: {e}")
+        raise HTTPException(status_code=500, detail="Errore durante l'upload del file")
 
 # ==================== ADMIN MIDDLEWARE ====================
 
