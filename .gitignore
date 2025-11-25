@@ -36,3 +36,20 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
+
+# Deployment scripts (VPS specific)
+check_*.py
+clean_*.py
+cleanup_*.py
+deploy_*.py
+find_*.py
+inspect_*.py
+list_*.py
+rebuild_*.py
+run_*.py
+update_*.py
+dummy.txt
+test_upload.txt
+
+# Claude Code
+.claude/
