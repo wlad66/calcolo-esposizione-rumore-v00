@@ -22,10 +22,14 @@ async function fetchApi<T>(
     const token = localStorage.getItem('auth_token');
 
     // Prepara gli headers con il token se presente
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+    const headers: any = {
       ...options?.headers,
     };
+
+    // Aggiungi Content-Type json solo se non è FormData (che lo gestisce in automatico)
+    if (!(options?.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -281,7 +285,7 @@ export const documentiAPI = {
   async upload(file: File, valutazioneId?: number, tipoValutazione?: 'esposizione' | 'dpi') {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const headers: HeadersInit = {};
     if (valutazioneId) headers['valutazione-id'] = valutazioneId.toString();
     if (tipoValutazione) headers['tipo-valutazione'] = tipoValutazione;
