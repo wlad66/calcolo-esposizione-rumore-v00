@@ -4,16 +4,19 @@ Esegui: python init_db.py
 """
 import psycopg2
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Leggi DATABASE_URL dalla variabile d'ambiente (iniettata da Dokploy)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    print("❌ ERROR: DATABASE_URL environment variable not set!")
+    print("ERROR: DATABASE_URL environment variable not set!")
     print("Available env vars:", list(os.environ.keys()))
     exit(1)
 
-print(f"📝 Using DATABASE_URL from environment")
+print(f"Using DATABASE_URL from environment")
 
 SQL_SCHEMA = """
 -- Schema Database per Calcolo Esposizione Rumore
@@ -126,6 +129,22 @@ CREATE TABLE IF NOT EXISTS valutazioni_dpi (
 CREATE INDEX IF NOT EXISTS idx_valutazioni_dpi_azienda ON valutazioni_dpi(azienda_id);
 CREATE INDEX IF NOT EXISTS idx_valutazioni_dpi_data ON valutazioni_dpi(created_at DESC);
 
+-- Tabella Documenti
+CREATE TABLE IF NOT EXISTS documenti (
+    id SERIAL PRIMARY KEY,
+    valutazione_esposizione_id INTEGER REFERENCES valutazioni_esposizione(id) ON DELETE CASCADE,
+    valutazione_dpi_id INTEGER REFERENCES valutazioni_dpi(id) ON DELETE CASCADE,
+    nome_file VARCHAR(255) NOT NULL,
+    url VARCHAR(512) NOT NULL,
+    tipo_file VARCHAR(50), -- 'pdf', 'word', 'altro'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_documenti_esposizione ON documenti(valutazione_esposizione_id);
+CREATE INDEX IF NOT EXISTS idx_documenti_dpi ON documenti(valutazione_dpi_id);
+CREATE INDEX IF NOT EXISTS idx_documenti_user ON documenti(user_id);
+
 -- Trigger per aggiornare updated_at su aziende
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -189,36 +208,37 @@ END $$;
 
 def init_database():
     """Inizializza il database con lo schema"""
-    print("🔌 Connessione al database...")
+    print("Connessione al database...")
 
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
 
-        print("📊 Creazione tabelle base...")
+        print("Creazione tabelle base...")
         cursor.execute(SQL_SCHEMA)
         conn.commit()
-        print("✅ Tabelle base create")
+        print("Tabelle base create")
 
-        print("📊 Esecuzione migrazioni...")
+        print("Esecuzione migrazioni...")
         cursor.execute(SQL_MIGRATION)
         conn.commit()
-        print("✅ Migrazioni completate")
+        print("Migrazioni completate")
 
-        print("\n✅ Database inizializzato con successo!")
-        print("\n📋 Tabelle create:")
+        print("\nDatabase inizializzato con successo!")
+        print("\nTabelle create:")
         print("  - users")
         print("  - password_reset_tokens")
         print("  - aziende")
         print("  - valutazioni_esposizione")
         print("  - misurazioni")
         print("  - valutazioni_dpi")
+        print("  - documenti")
 
         cursor.close()
         conn.close()
 
     except Exception as e:
-        print(f"❌ Errore durante l'inizializzazione: {e}")
+        print(f"Errore durante l'inizializzazione: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -234,6 +254,6 @@ if __name__ == "__main__":
     success = init_database()
     
     if success:
-        print("\n🎉 Inizializzazione completata!")
+        print("\nInizializzazione completata!")
     else:
-        print("\n⚠️  Inizializzazione fallita")
+        print("\nInizializzazione fallita")

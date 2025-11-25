@@ -140,7 +140,22 @@ class ValutazioneDPI(BaseModel):
     protezione_adeguata: Optional[str]
     created_at: datetime
 
+class Documento(BaseModel):
+    id: int
+    valutazione_esposizione_id: Optional[int]
+    valutazione_dpi_id: Optional[int]
+    nome_file: str
+    url: str
+    tipo_file: str
+    created_at: datetime
+
 # ==================== DATABASE ====================
+
+def get_db_connection():
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise ValueError("DATABASE_URL environment variable is not set")
+    return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
 
 def get_db():
     database_url = os.getenv("DATABASE_URL")
@@ -452,22 +467,6 @@ def reset_password(request: ResetPasswordRequest, conn=Depends(get_db)):
         print(f"Errore durante reset password: {e}")
         raise HTTPException(status_code=500, detail="Errore durante il reset della password")
     finally:
-        cursor.close()
-
-# ==================== ENDPOINTS UPLOAD ====================
-
-@app.post("/api/upload")
-async def upload_file(file: UploadFile, current_user: dict = Depends(get_current_user)):
-    """
-    Carica un file su Backblaze B2 e restituisce l'URL
-    """
-    if not storage.s3_client:
-        raise HTTPException(status_code=503, detail="Servizio di storage non configurato")
-    
-    try:
-        url = storage.upload_file(file)
-        return {"url": url, "filename": file.filename}
-    except HTTPException:
         raise
     except Exception as e:
         print(f"Errore upload: {e}")
