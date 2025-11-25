@@ -826,11 +826,12 @@ const Index = () => {
             <Card className="p-6">
               <DPISelector
                 dpiSelezionato={dpiSelezionato}
-                onSelectDPI={selezionaDPI}
+                onDPIChange={selezionaDPI}
                 valoriHML={valoriHML}
                 onHMLChange={handleHMLChange}
                 lexPerDPI={lexPerDPI}
-                onLexPerDPIChange={setLexPerDPI}
+                onLexChange={setLexPerDPI}
+                lexCalcolato={lex}
               />
             </Card>
 
