@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Building2, ArrowLeft, Trash2, Filter, Edit, FolderOpen, Download, X } from 'lucide-react';
+import { FileText, Building2, ArrowLeft, Trash2, Filter, Edit, FolderOpen, Download, X, Upload } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -215,6 +215,53 @@ const Valutazioni = () => {
       toast({
         title: 'Errore',
         description: response.error || 'Impossibile eliminare il documento',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleUploadDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedValutazioneForDocs) return;
+
+    // Reset input value to allow selecting the same file again
+    event.target.value = '';
+
+    const toastId = toast({
+      title: 'Caricamento in corso...',
+      description: 'Sto caricando il documento nel cloud',
+    });
+
+    try {
+      const response = await documentiAPI.upload(
+        file,
+        selectedValutazioneForDocs.id,
+        selectedValutazioneForDocs.type
+      );
+
+      if (response.data) {
+        toast({
+          title: 'Documento caricato',
+          description: 'Il file è stato archiviato con successo'
+        });
+
+        // Ricarica lista
+        const docsRes = await documentiAPI.getByValutazione(selectedValutazioneForDocs.type, selectedValutazioneForDocs.id);
+        if (docsRes.data) {
+          setSelectedDocs(docsRes.data);
+        }
+      } else {
+        toast({
+          title: 'Errore caricamento',
+          description: response.error || 'Si è verificato un errore durante l\'upload',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Errore imprevisto',
+        description: 'Impossibile completare il caricamento',
         variant: 'destructive'
       });
     }
@@ -467,6 +514,19 @@ const Valutazioni = () => {
               <DialogDescription>
                 Gestisci i documenti salvati per questa valutazione
               </DialogDescription>
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => document.getElementById('file-upload')?.click()}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Carica Documento
+                </Button>
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.txt,.csv"
+                  onChange={handleUploadDocument}
+                />
+              </div>
             </DialogHeader>
 
             <div className="mt-4">
