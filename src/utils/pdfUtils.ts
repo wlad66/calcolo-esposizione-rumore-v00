@@ -10,7 +10,8 @@ export const generaPDFEsposizione = (
   lex: number,
   lpicco: number,
   riskClass: RiskClass,
-  azienda?: Azienda
+  azienda?: Azienda,
+  returnBlob: boolean = false
 ) => {
   try {
     const doc = new jsPDF();
@@ -97,14 +98,14 @@ export const generaPDFEsposizione = (
       doc.text(reparto, 50, yPos);
       yPos += 7;
     }
-    
+
     // Tabella misurazioni
     yPos += 10;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(75, 85, 99);
     doc.text('Dati di Misurazione', 20, yPos);
-    
+
     yPos += 5;
     const tableData = misurazioni.map(m => [
       m.attivita || '-',
@@ -112,7 +113,7 @@ export const generaPDFEsposizione = (
       m.durata || '-',
       m.lpicco || '-'
     ]);
-    
+
     autoTable(doc, {
       startY: yPos,
       head: [['Attività/Postazione', 'LEQ dB(A)', 'Durata (min)', 'Lpicco,C dB(C)']],
@@ -133,17 +134,17 @@ export const generaPDFEsposizione = (
       margin: { left: 20, right: 20 },
       styles: { fontSize: 9 }
     });
-    
+
     yPos = (doc as any).lastAutoTable.finalY + 15;
-    
+
     // Risultati
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(75, 85, 99);
     doc.text('Risultati della Valutazione', 20, yPos);
-    
+
     yPos += 10;
-    
+
     // Box LEX (centrato)
     doc.setFillColor(240, 249, 255);
     doc.setDrawColor(59, 130, 246);
@@ -156,7 +157,7 @@ export const generaPDFEsposizione = (
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(37, 99, 235);
     doc.text(`LEX,8h = ${lex.toFixed(1)} dB(A)`, 65, yPos + 18, { align: 'center' });
-    
+
     // Box Lpicco (centrato)
     doc.setFillColor(250, 245, 255);
     doc.setDrawColor(124, 58, 237);
@@ -168,14 +169,14 @@ export const generaPDFEsposizione = (
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(124, 58, 237);
     doc.text(`Lpicco,C = ${lpicco.toFixed(1)} dB(C)`, 145, yPos + 18, { align: 'center' });
-    
+
     yPos += 35;
-    
+
     // Classificazione rischio (centrato)
     const colorRischio = riskClass.classe.toLowerCase().includes('minimo') ? [220, 252, 231] :
       riskClass.classe.toLowerCase().includes('medio') ? [254, 243, 199] :
-      riskClass.classe.toLowerCase().includes('rilevante') ? [254, 215, 170] : [254, 226, 226];
-    
+        riskClass.classe.toLowerCase().includes('rilevante') ? [254, 215, 170] : [254, 226, 226];
+
     doc.setFillColor(colorRischio[0], colorRischio[1], colorRischio[2]);
     doc.setDrawColor(5, 150, 105);
     doc.setLineWidth(2);
@@ -186,15 +187,15 @@ export const generaPDFEsposizione = (
     doc.text('CLASSIFICAZIONE DEL RISCHIO', 25, yPos + 7);
     doc.setFontSize(12);
     doc.text(riskClass.classe, 25, yPos + 15);
-    
+
     yPos += 30;
-    
+
     // Valori limite
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(75, 85, 99);
     doc.text('Valori Limite di Riferimento (D.Lgs. 81/2008)', 20, yPos);
-    
+
     yPos += 5;
     autoTable(doc, {
       startY: yPos,
@@ -218,11 +219,11 @@ export const generaPDFEsposizione = (
       margin: { left: 20, right: 20 },
       styles: { fontSize: 9 }
     });
-    
+
     // Footer
     const totalPages = (doc as any).internal.pages.length - 1;
     const pageHeight = doc.internal.pageSize.height;
-    
+
     doc.setFontSize(8);
     doc.setTextColor(107, 114, 128);
     doc.setFont('helvetica', 'italic');
@@ -230,10 +231,14 @@ export const generaPDFEsposizione = (
     doc.text(`Formula: LEX,8h = 10 × log₁₀(Σ(10^(LEQi/10) × ti/480))`, 20, pageHeight - 20);
     doc.text(`Durata totale misurata: ${durataTotale} minuti`, 20, pageHeight - 15);
     doc.text(`Report generato il ${dataOggi}`, 20, pageHeight - 10);
-    
-    // Salva il PDF
+
+    // Salva o ritorna il PDF
+    if (returnBlob) {
+      return doc.output('blob');
+    }
+
     doc.save(`Report_Rumore_${dataOggi.replace(/\//g, '-')}.pdf`);
-    
+
     return true;
   } catch (error) {
     console.error('Errore generazione PDF:', error);
@@ -249,7 +254,8 @@ export const generaPDFDPI = (
   mansione: string,
   reparto: string,
   lexCalcolato: number,
-  azienda?: Azienda
+  azienda?: Azienda,
+  returnBlob: boolean = false
 ) => {
   try {
     const doc = new jsPDF();
@@ -320,7 +326,7 @@ export const generaPDFDPI = (
     doc.text('Data:', 20, yPos);
     doc.setFont('helvetica', 'normal');
     doc.text(dataOggi, 45, yPos);
-    
+
     if (mansione) {
       yPos += 7;
       doc.setFont('helvetica', 'bold');
@@ -328,7 +334,7 @@ export const generaPDFDPI = (
       doc.setFont('helvetica', 'normal');
       doc.text(mansione, 45, yPos);
     }
-    
+
     if (reparto) {
       yPos += 7;
       doc.setFont('helvetica', 'bold');
@@ -336,16 +342,16 @@ export const generaPDFDPI = (
       doc.setFont('helvetica', 'normal');
       doc.text(reparto, 45, yPos);
     }
-    
+
     yPos += 7;
-    
+
     // Informazioni DPI
     yPos += 8;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(75, 85, 99);
     doc.text('Dispositivo di Protezione Individuale', 20, yPos);
-    
+
     yPos += 7;
     doc.setFillColor(243, 232, 255);
     doc.setDrawColor(192, 132, 252);
@@ -355,14 +361,14 @@ export const generaPDFDPI = (
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(107, 33, 168);
     doc.text(dpiSelezionato ? dpiDatabase[dpiSelezionato].nome : 'DPI Personalizzato', 22, yPos + 4);
-    
+
     // Valori HML
     yPos += 15;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(75, 85, 99);
     doc.text('Valori di Attenuazione Sonora (HML)', 20, yPos);
-    
+
     yPos += 5;
     autoTable(doc, {
       startY: yPos,
@@ -392,9 +398,9 @@ export const generaPDFDPI = (
       margin: { left: 20, right: 20 },
       tableWidth: 170
     });
-    
+
     yPos = (doc as any).lastAutoTable.finalY + 15;
-    
+
     // Livello di rumore
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
@@ -403,16 +409,16 @@ export const generaPDFDPI = (
     doc.setFontSize(12);
     doc.setTextColor(37, 99, 235);
     doc.text(`LEX,8h = ${lexDPI.toFixed(1)} dB(A)`, 95, yPos);
-    
+
     // Risultati
     yPos += 15;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(75, 85, 99);
     doc.text('Risultati della Valutazione', 20, yPos);
-    
+
     yPos += 8;
-    
+
     // Box PNR
     doc.setFillColor(219, 234, 254);
     doc.setDrawColor(59, 130, 246);
@@ -425,7 +431,7 @@ export const generaPDFDPI = (
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(37, 99, 235);
     doc.text(`${risultatoAttenuazione.pnr} dB`, 60, yPos + 18, { align: 'center' });
-    
+
     // Box L'eff
     doc.setFillColor(233, 213, 255);
     doc.setDrawColor(124, 58, 237);
@@ -437,15 +443,15 @@ export const generaPDFDPI = (
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(124, 58, 237);
     doc.text(`${risultatoAttenuazione.leff} dB(A)`, 150, yPos + 18, { align: 'center' });
-    
+
     yPos += 35;
-    
+
     // Valutazione protezione
     const colorProtez = risultatoAttenuazione.protezioneAdeguata.includes('OTTIMALE') ? [220, 252, 231] :
       risultatoAttenuazione.protezioneAdeguata.includes('INSUFFICIENTE') ? [254, 226, 226] :
-      risultatoAttenuazione.protezioneAdeguata.includes('BUONA') ? [224, 242, 254] :
-      risultatoAttenuazione.protezioneAdeguata.includes('ACCETTABILE') ? [254, 243, 199] : [254, 215, 170];
-    
+        risultatoAttenuazione.protezioneAdeguata.includes('BUONA') ? [224, 242, 254] :
+          risultatoAttenuazione.protezioneAdeguata.includes('ACCETTABILE') ? [254, 243, 199] : [254, 215, 170];
+
     doc.setFillColor(colorProtez[0], colorProtez[1], colorProtez[2]);
     doc.setDrawColor(5, 150, 105);
     doc.setLineWidth(1.5);
@@ -456,15 +462,15 @@ export const generaPDFDPI = (
     doc.text('VALUTAZIONE PROTEZIONE', 22, yPos + 6);
     doc.setFontSize(10);
     doc.text(risultatoAttenuazione.protezioneAdeguata, 22, yPos + 12);
-    
+
     yPos += 22;
-    
+
     // Criteri di interpretazione
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(75, 85, 99);
     doc.text('Criteri di Interpretazione (UNI EN 458:2016)', 20, yPos);
-    
+
     yPos += 5;
     autoTable(doc, {
       startY: yPos,
@@ -498,7 +504,7 @@ export const generaPDFDPI = (
         }
       }
     });
-    
+
     // Footer
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(8);
@@ -507,10 +513,14 @@ export const generaPDFDPI = (
     doc.text(`Calcolo: L'eff = LEX,8h - PNR = ${lexDPI.toFixed(1)} - ${risultatoAttenuazione.pnr} = ${risultatoAttenuazione.leff} dB(A)`, 20, pageHeight - 20);
     doc.text('Il Metodo HML utilizza i valori H, M, L per calcolare l\'attenuazione prevista', 20, pageHeight - 15);
     doc.text(`Report generato il ${dataOggi}`, 20, pageHeight - 10);
-    
-    // Salva il PDF
+
+    // Salva o ritorna il PDF
+    if (returnBlob) {
+      return doc.output('blob');
+    }
+
     doc.save(`Valutazione_DPI_${dataOggi.replace(/\//g, '-')}.pdf`);
-    
+
     return true;
   } catch (error) {
     console.error('Errore generazione PDF DPI:', error);

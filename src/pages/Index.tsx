@@ -19,7 +19,7 @@ import { calcolaLEX, getLpiccoMax, getClasseRischio, calcolaAttenuazione } from 
 import { esportaCSVEsposizione, esportaCSVDPI } from '@/utils/exportUtils';
 import { generaPDFEsposizione, generaPDFDPI } from '@/utils/pdfUtils';
 import { generaWordEsposizione, generaWordDPI } from '@/utils/wordUtils';
-import { esposizioneAPI, dpiAPI, aziendeAPI } from '@/lib/api';
+import { esposizioneAPI, dpiAPI, aziendeAPI, documentiAPI } from '@/lib/api';
 import {
   Dialog,
   DialogContent,
@@ -216,15 +216,15 @@ const Index = () => {
 
         // Salta righe di intestazione sezioni
         if (riga.includes('INFORMAZIONI GENERALI') ||
-            riga.includes('DATI DI MISURAZIONE') ||
-            riga.includes('Calcolo Esposizione')) {
+          riga.includes('DATI DI MISURAZIONE') ||
+          riga.includes('Calcolo Esposizione')) {
           continue;
         }
 
         // Riconosci header della tabella dati (gestisce problemi encoding)
         if (riga.includes('Attività') || riga.includes('AttivitÃ') ||
-            riga.includes('LEQ dB') || riga.includes('Mansione,') ||
-            riga.includes('MANSIONE,') || riga.includes('Reparto,')) {
+          riga.includes('LEQ dB') || riga.includes('Mansione,') ||
+          riga.includes('MANSIONE,') || riga.includes('Reparto,')) {
           headerTrovato = true;
           continue;
         }
@@ -324,14 +324,31 @@ const Index = () => {
       });
     }
   };
-  const stampaPDFDPI = () => {
+  const stampaPDFDPI = async () => {
     const selectedAzienda = aziende.find(a => a.id === selectedAziendaId);
+
+    // 1. Genera e scarica locale
     const success = generaPDFDPI(dpiSelezionato, valoriHML, lexPerDPI, attenuationResults, mansione, reparto, lex, selectedAzienda);
+
     if (success) {
       toast({
         title: 'PDF DPI generato',
         description: 'Il report PDF della valutazione DPI è stato scaricato'
       });
+
+      // 2. Upload automatico se salvato
+      if (editingDPIId) {
+        try {
+          const blob = await generaPDFDPI(dpiSelezionato, valoriHML, lexPerDPI, attenuationResults, mansione, reparto, lex, selectedAzienda, true);
+          if (blob instanceof Blob) {
+            const filename = `Valutazione_DPI_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.pdf`;
+            await documentiAPI.upload(new File([blob], filename), editingDPIId, 'dpi');
+            toast({ title: 'Documento archiviato', description: 'Copia salvata nel cloud' });
+          }
+        } catch (e) {
+          console.error('Errore upload automatico:', e);
+        }
+      }
     } else {
       toast({
         title: 'Errore durante la generazione del PDF',
@@ -339,14 +356,31 @@ const Index = () => {
       });
     }
   };
-  const stampaPDF = () => {
+  const stampaPDF = async () => {
     const selectedAzienda = aziende.find(a => a.id === selectedAziendaId);
+
+    // 1. Genera e scarica locale
     const success = generaPDFEsposizione(misurazioni, mansione, reparto, lex, lpicco, riskClass, selectedAzienda);
+
     if (success) {
       toast({
         title: 'PDF generato',
         description: 'Il report PDF è stato scaricato'
       });
+
+      // 2. Upload automatico se salvato
+      if (editingEsposizioneId) {
+        try {
+          const blob = await generaPDFEsposizione(misurazioni, mansione, reparto, lex, lpicco, riskClass, selectedAzienda, true);
+          if (blob instanceof Blob) {
+            const filename = `Report_Rumore_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.pdf`;
+            await documentiAPI.upload(new File([blob], filename), editingEsposizioneId, 'esposizione');
+            toast({ title: 'Documento archiviato', description: 'Copia salvata nel cloud' });
+          }
+        } catch (e) {
+          console.error('Errore upload automatico:', e);
+        }
+      }
     } else {
       toast({
         title: 'Errore durante la generazione del PDF',
@@ -357,12 +391,29 @@ const Index = () => {
   const esportaWord = async () => {
     try {
       const selectedAzienda = aziende.find(a => a.id === selectedAziendaId);
+
+      // 1. Genera e scarica locale
       const success = await generaWordEsposizione(misurazioni, mansione, reparto, lex, lpicco, riskClass, selectedAzienda);
+
       if (success) {
         toast({
           title: 'Documento Word generato',
           description: 'Il report Word è stato scaricato'
         });
+
+        // 2. Upload automatico se salvato
+        if (editingEsposizioneId) {
+          try {
+            const blob = await generaWordEsposizione(misurazioni, mansione, reparto, lex, lpicco, riskClass, selectedAzienda, true);
+            if (blob instanceof Blob) {
+              const filename = `Report_Rumore_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.docx`;
+              await documentiAPI.upload(new File([blob], filename), editingEsposizioneId, 'esposizione');
+              toast({ title: 'Documento archiviato', description: 'Copia salvata nel cloud' });
+            }
+          } catch (e) {
+            console.error('Errore upload automatico:', e);
+          }
+        }
       } else {
         toast({
           title: 'Errore durante la generazione del documento',
@@ -379,12 +430,29 @@ const Index = () => {
   const esportaWordDPI = async () => {
     try {
       const selectedAzienda = aziende.find(a => a.id === selectedAziendaId);
+
+      // 1. Genera e scarica locale
       const success = await generaWordDPI(dpiSelezionato, valoriHML, lexPerDPI, attenuationResults, mansione, reparto, lex, selectedAzienda);
+
       if (success) {
         toast({
           title: 'Documento Word DPI generato',
           description: 'Il report Word della valutazione DPI è stato scaricato'
         });
+
+        // 2. Upload automatico se salvato
+        if (editingDPIId) {
+          try {
+            const blob = await generaWordDPI(dpiSelezionato, valoriHML, lexPerDPI, attenuationResults, mansione, reparto, lex, selectedAzienda, true);
+            if (blob instanceof Blob) {
+              const filename = `Valutazione_DPI_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.docx`;
+              await documentiAPI.upload(new File([blob], filename), editingDPIId, 'dpi');
+              toast({ title: 'Documento archiviato', description: 'Copia salvata nel cloud' });
+            }
+          } catch (e) {
+            console.error('Errore upload automatico:', e);
+          }
+        }
       } else {
         toast({
           title: 'Errore durante la generazione del documento',
@@ -642,197 +710,203 @@ const Index = () => {
   const lexForDPI = parseFloat(lexPerDPI) || lex;
   const attenuationResults = calcolaAttenuazione(lexForDPI, valoriHML);
   return <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
-        <header className="mb-8">
-          {/* Barra superiore: Titolo + Info Utente */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary rounded-lg">
-                <Calculator className="h-8 w-8 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-foreground">Calcolatore Livello di Esposizione Rumore</h1>
-                <p className="text-muted-foreground mt-1">
-                  Valutazione professionale secondo D.Lgs. 81/2008 e UNI EN 458:2016
-                </p>
-              </div>
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <header className="mb-8">
+        {/* Barra superiore: Titolo + Info Utente */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-primary rounded-lg">
+              <Calculator className="h-8 w-8 text-primary-foreground" />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {user?.nome}
-              </span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Esci
-              </Button>
+            <div>
+              <h1 className="text-4xl font-bold text-foreground">Calcolatore Livello di Esposizione Rumore</h1>
+              <p className="text-muted-foreground mt-1">
+                Valutazione professionale secondo D.Lgs. 81/2008 e UNI EN 458:2016
+              </p>
             </div>
           </div>
-
-          {/* Barra di navigazione */}
-          <div className="flex items-center gap-2 p-4 bg-card rounded-lg border shadow-sm">
-            <Button variant="outline" onClick={nuovaValutazione} className="flex-1 sm:flex-none">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Nuova Valutazione
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {user?.nome}
+            </span>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Esci
             </Button>
-            <Link to="/valutazioni" className="flex-1 sm:flex-none">
-              <Button variant="outline" className="w-full">
-                <FolderOpen className="h-4 w-4 mr-2" />
-                Storico Valutazioni
+          </div>
+        </div>
+
+        {/* Barra di navigazione */}
+        <div className="flex items-center gap-2 p-4 bg-card rounded-lg border shadow-sm">
+          <Button variant="outline" onClick={nuovaValutazione} className="flex-1 sm:flex-none">
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Nuova Valutazione
+          </Button>
+          <Link to="/valutazioni" className="flex-1 sm:flex-none">
+            <Button variant="outline" className="w-full">
+              <FolderOpen className="h-4 w-4 mr-2" />
+              Storico Valutazioni
+            </Button>
+          </Link>
+          <Link to="/aziende" className="flex-1 sm:flex-none">
+            <Button variant="outline" className="w-full">
+              <Building2 className="h-4 w-4 mr-2" />
+              Gestione Aziende
+            </Button>
+          </Link>
+          {isAdmin && (
+            <Link to="/admin" className="flex-1 sm:flex-none">
+              <Button variant="outline" className="w-full border-red-200 text-red-700 hover:bg-red-50">
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
               </Button>
             </Link>
-            <Link to="/aziende" className="flex-1 sm:flex-none">
-              <Button variant="outline" className="w-full">
-                <Building2 className="h-4 w-4 mr-2" />
-                Gestione Aziende
-              </Button>
-            </Link>
-            {isAdmin && (
-              <Link to="/admin" className="flex-1 sm:flex-none">
-                <Button variant="outline" className="w-full border-red-200 text-red-700 hover:bg-red-50">
-                  <Shield className="h-4 w-4 mr-2" />
-                  Admin
+          )}
+        </div>
+      </header>
+
+      <Card className="p-6 mb-6">
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="md:col-span-3">
+            <AziendaSelector
+              aziende={aziende}
+              selectedAziendaId={selectedAziendaId}
+              onSelect={setSelectedAziendaId}
+              onAddNew={() => setShowAziendaDialog(true)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="mansione">Mansione</Label>
+            <Input id="mansione" value={mansione} onChange={e => setMansione(e.target.value)} placeholder="Es: Operatore manutenzione" className="mt-2" />
+          </div>
+          <div>
+            <Label htmlFor="reparto">Reparto/Area</Label>
+            <Input id="reparto" value={reparto} onChange={e => setReparto(e.target.value)} placeholder="Es: Reparto produzione" className="mt-2" />
+          </div>
+        </div>
+      </Card>
+
+      <Tabs defaultValue="esposizione" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="esposizione" className="gap-2">
+            <Calculator className="h-4 w-4" />
+            Esposizione Rumore
+          </TabsTrigger>
+          <TabsTrigger value="dpi" className="gap-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            Valutazione DPI
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="esposizione" className="space-y-6">
+          <Card className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold">Dati di Misurazione</h3>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={aggiungiMisurazione}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Aggiungi Riga
                 </Button>
-              </Link>
-            )}
-          </div>
-        </header>
-
-        <Card className="p-6 mb-6">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="md:col-span-3">
-              <AziendaSelector
-                aziende={aziende}
-                selectedAziendaId={selectedAziendaId}
-                onSelect={setSelectedAziendaId}
-                onAddNew={() => setShowAziendaDialog(true)}
-              />
+                <label>
+                  <Button variant="outline" size="sm" asChild>
+                    <span>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Importa CSV
+                    </span>
+                  </Button>
+                  <input type="file" accept=".csv,.txt" onChange={gestisciImportCSV} className="hidden" />
+                </label>
+                <Button variant="outline" size="sm" onClick={esportaCSV}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Esporta CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={stampaPDF}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={esportaWord}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Word
+                </Button>
+                <Button variant="default" size="sm" onClick={salvaEsposizione} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  {isSaving ? (editingEsposizioneId ? 'Aggiornamento...' : 'Salvataggio...') : (editingEsposizioneId ? 'Aggiorna' : 'Salva')}
+                </Button>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="mansione">Mansione</Label>
-              <Input id="mansione" value={mansione} onChange={e => setMansione(e.target.value)} placeholder="Es: Operatore manutenzione" className="mt-2" />
-            </div>
-            <div>
-              <Label htmlFor="reparto">Reparto/Area</Label>
-              <Input id="reparto" value={reparto} onChange={e => setReparto(e.target.value)} placeholder="Es: Reparto produzione" className="mt-2" />
-            </div>
-          </div>
-        </Card>
 
-        <Tabs defaultValue="esposizione" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="esposizione" className="gap-2">
-              <Calculator className="h-4 w-4" />
-              Esposizione Rumore
-            </TabsTrigger>
-            <TabsTrigger value="dpi" className="gap-2">
-              <FileSpreadsheet className="h-4 w-4" />
-              Valutazione DPI
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="esposizione" className="space-y-6">
-            <Card className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Dati di Misurazione</h3>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={aggiungiMisurazione}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Aggiungi Riga
-                  </Button>
-                  <label>
-                    <Button variant="outline" size="sm" asChild>
-                      <span>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Importa CSV
-                      </span>
-                    </Button>
-                    <input type="file" accept=".csv,.txt" onChange={gestisciImportCSV} className="hidden" />
-                  </label>
-                  <Button variant="outline" size="sm" onClick={esportaCSV}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Esporta CSV
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={stampaPDF}>
-                    <Printer className="h-4 w-4 mr-2" />
-                    PDF
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={esportaWord}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Word
-                  </Button>
-                  <Button variant="default" size="sm" onClick={salvaEsposizione} disabled={isSaving}>
-                    {isSaving ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4 mr-2" />
-                    )}
-                    {isSaving ? (editingEsposizioneId ? 'Aggiornamento...' : 'Salvataggio...') : (editingEsposizioneId ? 'Aggiorna' : 'Salva')}
-                  </Button>
-                </div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr,1fr,1fr,auto] gap-3 text-sm font-semibold text-muted-foreground px-4">
+                <div>Attività/Postazione</div>
+                <div className="text-center">LAeq dB(A)</div>
+                <div className="text-center">Durata (min)</div>
+                <div className="text-center">Lpicco,C dB(C)</div>
+                <div className="w-10"></div>
               </div>
 
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr,1fr,1fr,auto] gap-3 text-sm font-semibold text-muted-foreground px-4">
-                  <div>Attività/Postazione</div>
-                  <div className="text-center">LAeq dB(A)</div>
-                  <div className="text-center">Durata (min)</div>
-                  <div className="text-center">Lpicco,C dB(C)</div>
-                  <div className="w-10"></div>
-                </div>
-
-                {misurazioni.map(m => <MeasurementRow key={m.id} measurement={m} onUpdate={aggiornaMisurazione} onRemove={rimuoviMisurazione} canRemove={misurazioni.length > 1} />)}
-              </div>
-            </Card>
-
-            <ResultsCard lex={lex} lpicco={lpicco} riskClass={riskClass} />
-          </TabsContent>
-
-          <TabsContent value="dpi" className="space-y-6">
-            <div className="flex justify-end gap-2 mb-4">
-              <Button variant="outline" size="sm" onClick={esportaCSVDPIHandler} disabled={!attenuationResults.leff || attenuationResults.leff === '0'}>
-                <Download className="h-4 w-4 mr-2" />
-                Esporta CSV
-              </Button>
-              <Button variant="outline" size="sm" onClick={stampaPDFDPI} disabled={!attenuationResults.leff || attenuationResults.leff === '0'}>
-                <Printer className="h-4 w-4 mr-2" />
-                PDF
-              </Button>
-              <Button variant="outline" size="sm" onClick={esportaWordDPI} disabled={!attenuationResults.leff || attenuationResults.leff === '0'}>
-                <FileText className="h-4 w-4 mr-2" />
-                Word
-              </Button>
-              <Button variant="default" size="sm" onClick={salvaDPI} disabled={isSaving || !attenuationResults.leff || attenuationResults.leff === '0'}>
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {isSaving ? (editingDPIId ? 'Aggiornamento...' : 'Salvataggio...') : (editingDPIId ? 'Aggiorna' : 'Salva')}
-              </Button>
+              {misurazioni.map(m => <MeasurementRow key={m.id} measurement={m} onUpdate={aggiornaMisurazione} onRemove={rimuoviMisurazione} canRemove={misurazioni.length > 1} />)}
             </div>
+          </Card>
 
-            <DPISelector dpiSelezionato={dpiSelezionato} valoriHML={valoriHML} lexPerDPI={lexPerDPI} onDPIChange={selezionaDPI} onHMLChange={handleHMLChange} onLexChange={setLexPerDPI} lexCalcolato={lex} />
+          <ResultsCard lex={lex} lpicco={lpicco} riskClass={riskClass} />
+        </TabsContent>
 
-            <DPIResults results={attenuationResults} />
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="dpi" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button variant="outline" size="sm" onClick={esportaCSVDPIHandler} disabled={!attenuationResults.leff || attenuationResults.leff === '0'}>
+              <Download className="h-4 w-4 mr-2" />
+              Esporta CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={stampaPDFDPI} disabled={!attenuationResults.leff || attenuationResults.leff === '0'}>
+              <Printer className="h-4 w-4 mr-2" />
+              PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={esportaWordDPI} disabled={!attenuationResults.leff || attenuationResults.leff === '0'}>
+              <FileText className="h-4 w-4 mr-2" />
+              Word
+            </Button>
+            <Button variant="default" size="sm" onClick={salvaDPI} disabled={isSaving || !attenuationResults.leff || attenuationResults.leff === '0'}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {isSaving ? (editingDPIId ? 'Aggiornamento...' : 'Salvataggio...') : (editingDPIId ? 'Aggiorna' : 'Salva')}
+            </Button>
+          </div>
 
-      {/* Dialog per aggiungere nuova azienda */}
+          <Card className="p-6">
+            <DPISelector
+              dpiSelezionato={dpiSelezionato}
+              onSelectDPI={selezionaDPI}
+              valoriHML={valoriHML}
+              onHMLChange={handleHMLChange}
+              lexPerDPI={lexPerDPI}
+              onLexPerDPIChange={setLexPerDPI}
+            />
+          </Card>
+
+          <DPIResults results={attenuationResults} />
+        </TabsContent>
+      </Tabs>
+
       <Dialog open={showAziendaDialog} onOpenChange={setShowAziendaDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Registra Nuova Azienda</DialogTitle>
+            <DialogTitle>Nuova Azienda</DialogTitle>
             <DialogDescription>
-              Compila i dati dell'azienda per associarla alle valutazioni
+              Inserisci i dati della nuova azienda
             </DialogDescription>
           </DialogHeader>
-          <AziendaForm
-            onSave={handleSaveAzienda}
-            onCancel={() => setShowAziendaDialog(false)}
-          />
+          <AziendaForm onSubmit={handleSaveAzienda} onCancel={() => setShowAziendaDialog(false)} />
         </DialogContent>
       </Dialog>
-    </div>;
+    </div>
+  </div>;
 };
+
 export default Index;

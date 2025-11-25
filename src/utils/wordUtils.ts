@@ -10,7 +10,8 @@ export const generaWordEsposizione = async (
   lex: number,
   lpicco: number,
   riskClass: RiskClass,
-  azienda?: Azienda
+  azienda?: Azienda,
+  returnBlob: boolean = false
 ) => {
   try {
     const dataOggi = new Date().toLocaleDateString('it-IT');
@@ -167,47 +168,47 @@ export const generaWordEsposizione = async (
               })] : [])
             ]
           }),
-          
+
           // Dati di Misurazione
           new Paragraph({
             text: 'DATI DI MISURAZIONE',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'Attività/Postazione', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     width: { size: 40, type: WidthType.PERCENTAGE },
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'LEQ dB(A)', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     width: { size: 20, type: WidthType.PERCENTAGE },
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'Durata (min)', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     width: { size: 20, type: WidthType.PERCENTAGE },
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'Lpicco,C dB(C)', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     width: { size: 20, type: WidthType.PERCENTAGE },
                     shading: { fill: 'B4C7E7' }
@@ -232,14 +233,14 @@ export const generaWordEsposizione = async (
               }))
             ]
           }),
-          
+
           // Risultati della Valutazione
           new Paragraph({
             text: 'RISULTATI DELLA VALUTAZIONE',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
@@ -247,13 +248,13 @@ export const generaWordEsposizione = async (
                 children: [
                   new TableCell({
                     children: [
-                      new Paragraph({ 
+                      new Paragraph({
                         text: 'Livello di Esposizione Giornaliera',
                         alignment: AlignmentType.CENTER,
                         spacing: { after: 100 }
                       }),
-                      new Paragraph({ 
-                        children: [new TextRun({ 
+                      new Paragraph({
+                        children: [new TextRun({
                           text: `LEX,8h = ${lex.toFixed(1)} dB(A)`,
                           bold: true
                         })],
@@ -265,13 +266,13 @@ export const generaWordEsposizione = async (
                   }),
                   new TableCell({
                     children: [
-                      new Paragraph({ 
+                      new Paragraph({
                         text: 'Livello di Picco Massimo',
                         alignment: AlignmentType.CENTER,
                         spacing: { after: 100 }
                       }),
-                      new Paragraph({ 
-                        children: [new TextRun({ 
+                      new Paragraph({
+                        children: [new TextRun({
                           text: `Lpicco,C = ${lpicco.toFixed(1)} dB(C)`,
                           bold: true
                         })],
@@ -285,14 +286,14 @@ export const generaWordEsposizione = async (
               })
             ]
           }),
-          
+
           // Classificazione del Rischio
           new Paragraph({
             text: 'CLASSIFICAZIONE DEL RISCHIO',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
@@ -300,55 +301,55 @@ export const generaWordEsposizione = async (
                 children: [
                   new TableCell({
                     children: [
-                      new Paragraph({ 
-                        children: [new TextRun({ 
+                      new Paragraph({
+                        children: [new TextRun({
                           text: riskClass.classe,
                           bold: true
                         })],
                         alignment: AlignmentType.CENTER
                       })
                     ],
-                    shading: { 
+                    shading: {
                       fill: riskClass.classe.toLowerCase().includes('minimo') ? 'DCFCE7' :
-                            riskClass.classe.toLowerCase().includes('medio') ? 'FEF3C7' :
-                            riskClass.classe.toLowerCase().includes('rilevante') ? 'FED7AA' : 'FEE2E2'
+                        riskClass.classe.toLowerCase().includes('medio') ? 'FEF3C7' :
+                          riskClass.classe.toLowerCase().includes('rilevante') ? 'FED7AA' : 'FEE2E2'
                     }
                   })
                 ]
               })
             ]
           }),
-          
+
           // Valori Limite di Riferimento
           new Paragraph({
             text: 'VALORI LIMITE DI RIFERIMENTO (D.Lgs. 81/2008)',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'Livello di Azione/Limite', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'LEX,8h', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'Lpicco,C', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     shading: { fill: 'B4C7E7' }
                   })
@@ -395,7 +396,7 @@ export const generaWordEsposizione = async (
               })
             ]
           }),
-          
+
           // Note a piè di pagina
           new Paragraph({
             text: '',
@@ -431,11 +432,16 @@ export const generaWordEsposizione = async (
         ]
       }]
     });
-    
-    // Genera il blob e scarica
+
+    // Genera il blob
     const blob = await Packer.toBlob(doc);
+
+    if (returnBlob) {
+      return blob;
+    }
+
     saveAs(blob, `Report_Rumore_${dataOggi.replace(/\//g, '-')}.docx`);
-    
+
     return true;
   } catch (error) {
     console.error('Errore generazione Word:', error);
@@ -451,7 +457,8 @@ export const generaWordDPI = async (
   mansione: string,
   reparto: string,
   lexCalcolato: number,
-  azienda?: Azienda
+  azienda?: Azienda,
+  returnBlob: boolean = false
 ) => {
   try {
     const dataOggi = new Date().toLocaleDateString('it-IT');
@@ -609,22 +616,22 @@ export const generaWordDPI = async (
               })] : [])
             ]
           }),
-          
+
           // Dispositivo di Protezione Individuale
           new Paragraph({
             text: 'DISPOSITIVO DI PROTEZIONE INDIVIDUALE',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ 
-                      children: [new TextRun({ 
+                    children: [new Paragraph({
+                      children: [new TextRun({
                         text: dpiSelezionato ? dpiDatabase[dpiSelezionato].nome : 'DPI Personalizzato',
                         bold: true
                       })],
@@ -636,39 +643,39 @@ export const generaWordDPI = async (
               })
             ]
           }),
-          
+
           // Valori di Attenuazione Sonora (HML)
           new Paragraph({
             text: 'VALORI DI ATTENUAZIONE SONORA (HML)',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'H (High)\nAlte frequenze', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     width: { size: 33.33, type: WidthType.PERCENTAGE },
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'M (Medium)\nMedie frequenze', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     width: { size: 33.33, type: WidthType.PERCENTAGE },
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'L (Low)\nBasse frequenze', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     width: { size: 33.34, type: WidthType.PERCENTAGE },
                     shading: { fill: 'B4C7E7' }
@@ -678,19 +685,19 @@ export const generaWordDPI = async (
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: `${valoriHML.h} dB`, bold: true, size: 24 })],
                       alignment: AlignmentType.CENTER
                     })]
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: `${valoriHML.m} dB`, bold: true, size: 24 })],
                       alignment: AlignmentType.CENTER
                     })]
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: `${valoriHML.l} dB`, bold: true, size: 24 })],
                       alignment: AlignmentType.CENTER
                     })]
@@ -699,13 +706,13 @@ export const generaWordDPI = async (
               })
             ]
           }),
-          
+
           // Livello di rumore
           new Paragraph({
             text: '',
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
@@ -713,7 +720,7 @@ export const generaWordDPI = async (
                 children: [
                   new TableCell({
                     children: [
-                      new Paragraph({ 
+                      new Paragraph({
                         children: [new TextRun({ text: 'Livello di Rumore da Attenuare:', bold: true })],
                         alignment: AlignmentType.CENTER
                       })
@@ -723,7 +730,7 @@ export const generaWordDPI = async (
                   }),
                   new TableCell({
                     children: [
-                      new Paragraph({ 
+                      new Paragraph({
                         children: [new TextRun({ text: `LEX,8h = ${lexDPI.toFixed(1)} dB(A)`, bold: true, size: 24 })],
                         alignment: AlignmentType.CENTER
                       })
@@ -734,14 +741,14 @@ export const generaWordDPI = async (
               })
             ]
           }),
-          
+
           // Risultati della Valutazione
           new Paragraph({
             text: 'RISULTATI DELLA VALUTAZIONE',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
@@ -749,13 +756,13 @@ export const generaWordDPI = async (
                 children: [
                   new TableCell({
                     children: [
-                      new Paragraph({ 
+                      new Paragraph({
                         text: 'Attenuazione Prevista (PNR)',
                         alignment: AlignmentType.CENTER,
                         spacing: { after: 100 }
                       }),
-                      new Paragraph({ 
-                        children: [new TextRun({ 
+                      new Paragraph({
+                        children: [new TextRun({
                           text: `${risultatoAttenuazione.pnr} dB`,
                           bold: true,
                           size: 32
@@ -768,13 +775,13 @@ export const generaWordDPI = async (
                   }),
                   new TableCell({
                     children: [
-                      new Paragraph({ 
+                      new Paragraph({
                         text: "Livello Effettivo (L'eff)",
                         alignment: AlignmentType.CENTER,
                         spacing: { after: 100 }
                       }),
-                      new Paragraph({ 
-                        children: [new TextRun({ 
+                      new Paragraph({
+                        children: [new TextRun({
                           text: `${risultatoAttenuazione.leff} dB(A)`,
                           bold: true,
                           size: 32
@@ -789,14 +796,14 @@ export const generaWordDPI = async (
               })
             ]
           }),
-          
+
           // Valutazione Protezione
           new Paragraph({
             text: 'VALUTAZIONE PROTEZIONE',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
@@ -804,18 +811,18 @@ export const generaWordDPI = async (
                 children: [
                   new TableCell({
                     children: [
-                      new Paragraph({ 
-                        children: [new TextRun({ 
+                      new Paragraph({
+                        children: [new TextRun({
                           text: risultatoAttenuazione.protezioneAdeguata,
                           bold: true
                         })],
                         alignment: AlignmentType.CENTER
                       })
                     ],
-                    shading: { 
+                    shading: {
                       fill: risultatoAttenuazione.protezioneAdeguata.includes('OTTIMALE') ? 'DCFCE7' :
-                            risultatoAttenuazione.protezioneAdeguata.includes('INSUFFICIENTE') ? 'FEE2E2' :
-                            risultatoAttenuazione.protezioneAdeguata.includes('BUONA') ? 'E0F2FE' :
+                        risultatoAttenuazione.protezioneAdeguata.includes('INSUFFICIENTE') ? 'FEE2E2' :
+                          risultatoAttenuazione.protezioneAdeguata.includes('BUONA') ? 'E0F2FE' :
                             risultatoAttenuazione.protezioneAdeguata.includes('ACCETTABILE') ? 'FEF3C7' : 'FED7AA'
                     }
                   })
@@ -823,37 +830,37 @@ export const generaWordDPI = async (
               })
             ]
           }),
-          
+
           // Criteri di Interpretazione
           new Paragraph({
             text: 'CRITERI DI INTERPRETAZIONE (UNI EN 458:2016)',
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 }
           }),
-          
+
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: "Livello L'eff", bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'Valutazione', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     shading: { fill: 'B4C7E7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'Note', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     shading: { fill: 'B4C7E7' }
                   })
@@ -865,9 +872,9 @@ export const generaWordDPI = async (
                     children: [new Paragraph({ text: '< 65 dB(A)', alignment: AlignmentType.CENTER })]
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'ECCESSIVA', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })]
                   }),
                   new TableCell({
@@ -881,9 +888,9 @@ export const generaWordDPI = async (
                     children: [new Paragraph({ text: '65-70 dB(A)', alignment: AlignmentType.CENTER })]
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'BUONA', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })]
                   }),
                   new TableCell({
@@ -898,9 +905,9 @@ export const generaWordDPI = async (
                     shading: { fill: 'DCFCE7' }
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'OTTIMALE ✓', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })],
                     shading: { fill: 'DCFCE7' }
                   }),
@@ -916,9 +923,9 @@ export const generaWordDPI = async (
                     children: [new Paragraph({ text: '80-85 dB(A)', alignment: AlignmentType.CENTER })]
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'ACCETTABILE', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })]
                   }),
                   new TableCell({
@@ -932,9 +939,9 @@ export const generaWordDPI = async (
                     children: [new Paragraph({ text: '> 85 dB(A)', alignment: AlignmentType.CENTER })]
                   }),
                   new TableCell({
-                    children: [new Paragraph({ 
+                    children: [new Paragraph({
                       children: [new TextRun({ text: 'INSUFFICIENTE', bold: true })],
-                      alignment: AlignmentType.CENTER 
+                      alignment: AlignmentType.CENTER
                     })]
                   }),
                   new TableCell({
@@ -944,7 +951,7 @@ export const generaWordDPI = async (
               })
             ]
           }),
-          
+
           // Note a piè di pagina
           new Paragraph({
             text: '',
@@ -980,11 +987,16 @@ export const generaWordDPI = async (
         ]
       }]
     });
-    
-    // Genera il blob e scarica
+
+    // Genera il blob
     const blob = await Packer.toBlob(doc);
+
+    if (returnBlob) {
+      return blob;
+    }
+
     saveAs(blob, `Valutazione_DPI_${dataOggi.replace(/\//g, '-')}.docx`);
-    
+
     return true;
   } catch (error) {
     console.error('Errore generazione Word DPI:', error);

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { FileText, Building2, ArrowLeft, Trash2, Filter, Edit } from 'lucide-react';
+import { FileText, Building2, ArrowLeft, Trash2, Filter, Edit, FolderOpen, Download, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { esposizioneAPI, dpiAPI, aziendeAPI } from '@/lib/api';
+import { esposizioneAPI, dpiAPI, aziendeAPI, documentiAPI, DocumentoAPI } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -17,6 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface ValutazioneEsposizione {
   id: number;
@@ -55,6 +62,12 @@ const Valutazioni = () => {
   const [loading, setLoading] = useState(true);
   const [filtroAzienda, setFiltroAzienda] = useState<string>('tutte');
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'esposizione' | 'dpi'; id: number } | null>(null);
+
+  // Stati per gestione documenti
+  const [showDocsDialog, setShowDocsDialog] = useState(false);
+  const [selectedDocs, setSelectedDocs] = useState<DocumentoAPI[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [selectedValutazioneForDocs, setSelectedValutazioneForDocs] = useState<{ type: 'esposizione' | 'dpi', id: number } | null>(null);
 
   useEffect(() => {
     caricaDati();
@@ -161,6 +174,50 @@ const Valutazioni = () => {
         }
       }
     });
+  };
+
+  const handleShowDocuments = async (type: 'esposizione' | 'dpi', id: number) => {
+    setSelectedValutazioneForDocs({ type, id });
+    setLoadingDocs(true);
+    setShowDocsDialog(true);
+
+    const response = await documentiAPI.getByValutazione(type, id);
+    if (response.data) {
+      setSelectedDocs(response.data);
+    } else {
+      toast({
+        title: 'Errore',
+        description: 'Impossibile caricare i documenti',
+        variant: 'destructive'
+      });
+      setSelectedDocs([]);
+    }
+    setLoadingDocs(false);
+  };
+
+  const handleDeleteDocument = async (docId: number) => {
+    if (!confirm('Sei sicuro di voler eliminare questo documento?')) return;
+
+    const response = await documentiAPI.elimina(docId);
+    if (response.data) {
+      toast({
+        title: 'Documento eliminato',
+        description: 'Il documento è stato rimosso con successo'
+      });
+      // Ricarica la lista documenti
+      if (selectedValutazioneForDocs) {
+        const docsRes = await documentiAPI.getByValutazione(selectedValutazioneForDocs.type, selectedValutazioneForDocs.id);
+        if (docsRes.data) {
+          setSelectedDocs(docsRes.data);
+        }
+      }
+    } else {
+      toast({
+        title: 'Errore',
+        description: response.error || 'Impossibile eliminare il documento',
+        variant: 'destructive'
+      });
+    }
   };
 
   const getNomeAzienda = (aziendaId?: number) => {
@@ -291,6 +348,16 @@ const Valutazioni = () => {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleShowDocuments('esposizione', val.id)}
+                          className="hover:bg-primary/10"
+                          title="Gestisci documenti"
+                        >
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          Documenti
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleCaricaEsposizione(val)}
                           className="hover:bg-primary/10"
                         >
@@ -325,9 +392,8 @@ const Valutazioni = () => {
                         <div className="flex items-center gap-3 mb-3">
                           <Building2 className="h-5 w-5 text-primary" />
                           <h3 className="text-lg font-semibold">{getNomeAzienda(val.azienda_id)}</h3>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            val.protezione_adeguata === 'SÌ' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
-                          }`}>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${val.protezione_adeguata === 'SÌ' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+                            }`}>
                             Protezione {val.protezione_adeguata}
                           </span>
                         </div>
@@ -360,6 +426,16 @@ const Valutazioni = () => {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleShowDocuments('dpi', val.id)}
+                          className="hover:bg-primary/10"
+                          title="Gestisci documenti"
+                        >
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          Documenti
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleCaricaDPI(val)}
                           className="hover:bg-primary/10"
                         >
@@ -382,6 +458,65 @@ const Valutazioni = () => {
             </TabsContent>
           </Tabs>
         )}
+
+        {/* Dialog Documenti */}
+        <Dialog open={showDocsDialog} onOpenChange={setShowDocsDialog}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Documenti Archiviati</DialogTitle>
+              <DialogDescription>
+                Gestisci i documenti salvati per questa valutazione
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-4">
+              {loadingDocs ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Caricamento documenti...</p>
+                </div>
+              ) : selectedDocs.length === 0 ? (
+                <div className="text-center py-8 border rounded-lg bg-muted/20">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">Nessun documento archiviato</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {selectedDocs.map(doc => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{doc.nome_file}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(doc.created_at).toLocaleString('it-IT')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={doc.url} target="_blank" rel="noopener noreferrer" download>
+                            <Download className="h-4 w-4 mr-2" />
+                            Scarica
+                          </a>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteDocument(doc.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Dialog conferma eliminazione */}
         <AlertDialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>

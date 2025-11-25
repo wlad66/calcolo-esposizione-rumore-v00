@@ -265,3 +265,44 @@ export const aziendeAPI = {
 export async function healthCheck() {
   return fetchApi<{ status: string }>('/health');
 }
+
+// DOCUMENTI API
+export interface DocumentoAPI {
+  id: number;
+  valutazione_esposizione_id?: number;
+  valutazione_dpi_id?: number;
+  nome_file: string;
+  url: string;
+  tipo_file: string;
+  created_at: string;
+}
+
+export const documentiAPI = {
+  async upload(file: File, valutazioneId?: number, tipoValutazione?: 'esposizione' | 'dpi') {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const headers: HeadersInit = {};
+    if (valutazioneId) headers['valutazione-id'] = valutazioneId.toString();
+    if (tipoValutazione) headers['tipo-valutazione'] = tipoValutazione;
+
+    return fetchApi<{ url: string }>(
+      '/api/upload',
+      {
+        method: 'POST',
+        body: formData,
+        headers
+      }
+    );
+  },
+
+  async getByValutazione(tipo: 'esposizione' | 'dpi', id: number) {
+    return fetchApi<DocumentoAPI[]>(`/api/valutazioni/${tipo}/${id}/documenti`);
+  },
+
+  async elimina(id: number) {
+    return fetchApi<{ message: string }>(`/api/documenti/${id}`, {
+      method: 'DELETE',
+    });
+  }
+};
