@@ -18,6 +18,8 @@ Applicazione web professionale per il calcolo dell'esposizione al rumore secondo
 - **JWT** - Autenticazione
 - **Resend** - Invio email
 - **bcrypt** - Hash password
+- **boto3** - Client S3 per Backblaze B2
+- **Backblaze B2** - Object storage
 
 ### Deployment
 - **Docker** - Containerizzazione
@@ -70,6 +72,13 @@ Applicazione web professionale per il calcolo dell'esposizione al rumore secondo
 - ✅ Eliminazione utenti e dati
 - ✅ Protezione accessi
 
+### 7. Archiviazione Documenti
+- ✅ Upload documenti su Backblaze B2
+- ✅ Storage S3-compatible
+- ✅ Associazione documenti a valutazioni
+- ✅ Download e visualizzazione documenti archiviati
+- ✅ Gestione permessi per utente
+
 ## Struttura Progetto
 
 ```
@@ -77,6 +86,7 @@ calcolo-esposizione-rumore-main/
 ├── backend/                    # Backend FastAPI
 │   ├── main.py                # API principale
 │   ├── auth.py                # Autenticazione JWT
+│   ├── storage.py             # Integrazione Backblaze B2
 │   ├── init_db.py             # Inizializzazione DB
 │   ├── make_admin.py          # Script gestione admin
 │   └── requirements.txt       # Dipendenze Python
@@ -156,6 +166,14 @@ RESEND_FROM_EMAIL=noreply@dominio.it
 
 # Frontend URL per link recupero password
 FRONTEND_URL=http://yourdomain.com
+
+# Backblaze B2 Storage
+# Endpoint: s3.eu-central-003.backblazeb2.com
+# Region: eu-central-003
+B2_ENDPOINT_URL=https://s3.eu-central-003.backblazeb2.com
+B2_KEY_ID=your_b2_key_id
+B2_APPLICATION_KEY=your_b2_application_key
+B2_BUCKET_NAME=your-bucket-name
 ```
 
 **IMPORTANTE**: Il file `backend/.env.example` contiene un template completo con tutte le variabili necessarie.
@@ -343,6 +361,55 @@ CORS_ORIGINS=https://rumore.safetyprosuite.com
 RESEND_API_KEY=re_***
 RESEND_FROM_EMAIL=noreply@puntodiraccolta.com
 FRONTEND_URL=https://rumore.safetyprosuite.com
+
+# Backblaze B2 Storage
+B2_ENDPOINT_URL=https://s3.eu-central-003.backblazeb2.com
+B2_KEY_ID=***
+B2_APPLICATION_KEY=***
+B2_BUCKET_NAME=rumore-storage
+```
+
+### Storage Documenti (Backblaze B2)
+
+L'applicazione utilizza **Backblaze B2** come storage object per i documenti generati (PDF, Word).
+
+**Configurazione**:
+- **Endpoint**: `s3.eu-central-003.backblazeb2.com`
+- **Region**: `eu-central-003`
+- **Bucket**: `rumore-storage`
+- **Protocol**: S3 Compatible API
+
+**Caratteristiche**:
+- Upload file tramite boto3 S3 client
+- URL pubbliche nel formato: `https://rumore-storage.s3.eu-central-003.backblazeb2.com/filename`
+- Supporto per presigned URL (bucket privati)
+- Gestione automatica Content-Type
+- File naming con UUID per evitare collisioni
+
+**Integrazione**:
+```python
+# backend/storage.py
+from storage import storage
+
+# Upload file
+file_url = storage.upload_file(uploaded_file)
+
+# Generate presigned URL (bucket privato)
+download_url = storage.generate_presigned_url(file_key, expiration=3600)
+```
+
+**Tabella Database**:
+```sql
+CREATE TABLE documenti (
+    id SERIAL PRIMARY KEY,
+    valutazione_esposizione_id INTEGER REFERENCES valutazioni_esposizione(id),
+    valutazione_dpi_id INTEGER REFERENCES valutazioni_dpi(id),
+    nome_file VARCHAR(255) NOT NULL,
+    url TEXT NOT NULL,
+    tipo_file VARCHAR(50),
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ### Performance
