@@ -30,6 +30,11 @@ export const DPISelector = ({
   onLexChange,
   lexCalcolato
 }: DPISelectorProps) => {
+  // Safe number formatting
+  const formatLex = (value: number): string => {
+    return (isNaN(value) || value === undefined || value === null) ? '0.0' : value.toFixed(1);
+  };
+
   return (
     <Card className="p-6 space-y-6">
       <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -121,12 +126,12 @@ export const DPISelector = ({
             max="140"
             value={lexPerDPI}
             onChange={(e) => onLexChange(e.target.value)}
-            placeholder={lexCalcolato.toFixed(1)}
+            placeholder={formatLex(lexCalcolato)}
             className="mt-2"
             title="Livello di esposizione: 0-140 dB(A)"
           />
           <p className="text-sm text-muted-foreground mt-1">
-            Lascia vuoto per usare il LEX calcolato ({lexCalcolato.toFixed(1)} dB(A))
+            Lascia vuoto per usare il LEX calcolato ({formatLex(lexCalcolato)} dB(A))
           </p>
         </div>
       </div>

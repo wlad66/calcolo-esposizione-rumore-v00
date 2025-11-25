@@ -13,29 +13,34 @@ interface ResultsCardProps {
 }
 
 export const ResultsCard = ({ lex, lpicco, riskClass }: ResultsCardProps) => {
+  // Safe number formatting
+  const formatValue = (value: number): string => {
+    return (isNaN(value) || value === undefined || value === null) ? '0.0' : value.toFixed(1);
+  };
+
   return (
     <Card className="p-6 space-y-6">
       <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
         <AlertTriangle className="h-5 w-5 text-primary" />
         Risultati Valutazione
       </h3>
-      
+
       <div className="grid md:grid-cols-2 gap-4">
         <div className="p-4 rounded-lg bg-primary/5 border-2 border-primary">
           <p className="text-sm text-muted-foreground mb-1">
             Livello di Esposizione Giornaliera
           </p>
           <p className="text-3xl font-bold text-primary">
-            LEX,8h = {lex.toFixed(1)} dB(A)
+            LEX,8h = {formatValue(lex)} dB(A)
           </p>
         </div>
-        
+
         <div className="p-4 rounded-lg bg-accent/5 border-2 border-accent">
           <p className="text-sm text-muted-foreground mb-1">
             Livello di Picco Massimo
           </p>
           <p className="text-3xl font-bold text-accent">
-            Lpicco,C = {lpicco.toFixed(1)} dB(C)
+            Lpicco,C = {formatValue(lpicco)} dB(C)
           </p>
         </div>
       </div>
