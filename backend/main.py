@@ -467,10 +467,100 @@ def reset_password(request: ResetPasswordRequest, conn=Depends(get_db)):
         print(f"Errore durante reset password: {e}")
         raise HTTPException(status_code=500, detail="Errore durante il reset della password")
     finally:
-        raise
+        cursor.close()
+
+# ==================== ENDPOINTS UPLOAD ====================
+
+@app.post("/api/upload")
+async def upload_file(
+    file: UploadFile, 
+    valutazione_id: Optional[str] = Header(None),
+    tipo_valutazione: Optional[str] = Header(None),
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        # Upload su B2
+        file_url = storage.upload_file(file)
+        
+        # Se ci sono metadati di valutazione, salva nel DB
+        if valutazione_id and tipo_valutazione:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            try:
+                # Determina colonne in base al tipo
+                col_valutazione = "valutazione_esposizione_id" if tipo_valutazione == "esposizione" else "valutazione_dpi_id"
+                
+                # Determina tipo file
+                ext = file.filename.split('.')[-1].lower()
+                tipo_file = 'pdf' if ext == 'pdf' else 'word' if ext in ['doc', 'docx'] else 'altro'
+                
+                cursor.execute(
+                    f"""
+                    INSERT INTO documenti 
+                    ({col_valutazione}, nome_file, url, tipo_file, user_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (valutazione_id, file.filename, file_url, tipo_file, current_user['id'])
+                )
+                conn.commit()
+                doc_id = cursor.fetchone()['id']
+                print(f"Documento salvato nel DB con ID: {doc_id}")
+                
+            except Exception as e:
+                print(f"Errore salvataggio DB: {e}")
+                # Non blocchiamo l'upload se fallisce il salvataggio DB, ma lo logghiamo
+            finally:
+                cursor.close()
+                conn.close()
+            
+        return {"url": file_url}
     except Exception as e:
-        print(f"Errore upload: {e}")
-        raise HTTPException(status_code=500, detail="Errore durante l'upload del file")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/valutazioni/{tipo}/{id}/documenti", response_model=List[Documento])
+async def get_documenti_valutazione(tipo: str, id: int, current_user: dict = Depends(get_current_user)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        col_valutazione = "valutazione_esposizione_id" if tipo == "esposizione" else "valutazione_dpi_id"
+        
+        cursor.execute(
+            f"""
+            SELECT * FROM documenti 
+            WHERE {col_valutazione} = %s 
+            ORDER BY created_at DESC
+            """,
+            (id,)
+        )
+        documenti = cursor.fetchall()
+        return documenti
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.delete("/api/documenti/{id}")
+async def delete_documento(id: int, current_user: dict = Depends(get_current_user)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Verifica proprietà
+        cursor.execute("SELECT user_id FROM documenti WHERE id = %s", (id,))
+        doc = cursor.fetchone()
+        
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento non trovato")
+            
+        if doc['user_id'] != current_user['id'] and not current_user.get('is_admin'):
+            raise HTTPException(status_code=403, detail="Non autorizzato")
+            
+        cursor.execute("DELETE FROM documenti WHERE id = %s", (id,))
+        conn.commit()
+        return {"message": "Documento eliminato"}
+    finally:
+        cursor.close()
+        conn.close()
 
 # ==================== ADMIN MIDDLEWARE ====================
 
