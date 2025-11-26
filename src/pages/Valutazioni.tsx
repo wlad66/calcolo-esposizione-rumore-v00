@@ -195,6 +195,20 @@ const Valutazioni = () => {
     setLoadingDocs(false);
   };
 
+  const handleDownloadDocument = async (docId: number) => {
+    const response = await documentiAPI.download(docId);
+    if (response.data) {
+      // Apri il presigned URL in una nuova scheda per il download
+      window.open(response.data.url, '_blank');
+    } else if (response.error) {
+      toast({
+        title: 'Errore durante il download',
+        description: response.error,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleDeleteDocument = async (docId: number) => {
     if (!confirm('Sei sicuro di voler eliminare questo documento?')) return;
 
@@ -555,11 +569,13 @@ const Valutazioni = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer" download>
-                            <Download className="h-4 w-4 mr-2" />
-                            Scarica
-                          </a>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(doc.id)}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Scarica
                         </Button>
                         <Button
                           variant="ghost"

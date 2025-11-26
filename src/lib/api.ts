@@ -308,5 +308,9 @@ export const documentiAPI = {
     return fetchApi<{ message: string }>(`/api/documenti/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  async download(id: number) {
+    return fetchApi<{ url: string; nome_file: string }>(`/api/documenti/${id}/download`);
   }
 };

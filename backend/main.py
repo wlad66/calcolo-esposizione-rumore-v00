@@ -548,16 +548,47 @@ async def delete_documento(id: int, current_user: dict = Depends(get_current_use
         # Verifica proprietà
         cursor.execute("SELECT user_id FROM documenti WHERE id = %s", (id,))
         doc = cursor.fetchone()
-        
+
         if not doc:
             raise HTTPException(status_code=404, detail="Documento non trovato")
-            
+
         if doc['user_id'] != current_user['id'] and not current_user.get('is_admin'):
             raise HTTPException(status_code=403, detail="Non autorizzato")
-            
+
         cursor.execute("DELETE FROM documenti WHERE id = %s", (id,))
         conn.commit()
         return {"message": "Documento eliminato"}
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/api/documenti/{id}/download")
+async def download_documento(id: int, current_user: dict = Depends(get_current_user)):
+    """
+    Generate a presigned URL for downloading a document from B2 storage
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Get document info
+        cursor.execute("SELECT url, nome_file, user_id FROM documenti WHERE id = %s", (id,))
+        doc = cursor.fetchone()
+
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento non trovato")
+
+        # Verify ownership or admin
+        if doc['user_id'] != current_user['id'] and not current_user.get('is_admin'):
+            raise HTTPException(status_code=403, detail="Non autorizzato")
+
+        # Extract file key from URL
+        # URL format: https://rumore-storage.s3.eu-central-003.backblazeb2.com/filename.ext
+        file_key = doc['url'].split('/')[-1]
+
+        # Generate presigned URL (valid for 1 hour)
+        presigned_url = storage.generate_presigned_url(file_key, expiration=3600)
+
+        return {"url": presigned_url, "nome_file": doc['nome_file']}
     finally:
         cursor.close()
         conn.close()
