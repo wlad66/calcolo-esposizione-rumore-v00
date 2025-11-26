@@ -1,7 +1,8 @@
-# Problema Storage B2 - Da Risolvere
+# Problema Storage B2 - RISOLTO ✅
 
-**Data**: 25/11/2025, 21:45
-**Stato**: Non risolto - da affrontare domani
+**Data problema**: 25/11/2025, 21:45
+**Data risoluzione**: 26/11/2025
+**Stato**: ✅ RISOLTO
 
 ## Descrizione Problema
 
@@ -140,6 +141,44 @@ docker exec $CONTAINER_ID env | grep B2
 
 ---
 
-**Status**: Da risolvere domani
-**Priorità**: Alta
-**Tempo stimato**: 10-15 minuti
+## ✅ RISOLUZIONE APPLICATA
+
+**Data**: 26/11/2025
+**Metodo**: Docker Service Update via SSH
+
+### Azioni Eseguite
+
+1. ✅ Verificato assenza variabili B2 nel container produzione
+2. ✅ Aggiunto variabili tramite `docker service update`:
+   ```bash
+   docker service update \
+     --env-add "B2_ENDPOINT_URL=https://s3.eu-central-003.backblazeb2.com" \
+     --env-add "B2_KEY_ID=00367792fd505150000000006" \
+     --env-add "B2_APPLICATION_KEY=K003xMWWtooSZw0PCsiixlHpGnGhjEU" \
+     --env-add "B2_BUCKET_NAME=rumore-storage" \
+     calcoloesposizionerumoremain-rumorebackend-k55sdg
+   ```
+3. ✅ Container riavviato automaticamente (ID: `f142526897a6`)
+4. ✅ Verificato caricamento variabili nel nuovo container
+5. ✅ Verificato logs backend - nessun errore B2
+6. ✅ Testato inizializzazione client B2 - successo
+7. ✅ Testato upload file di test - successo
+
+### Risultato
+
+- **Client B2**: Inizializzato correttamente
+- **Bucket**: Accessibile
+- **Upload**: Funzionante
+- **URL generati**: Corretti (formato Friendly URL)
+
+**File test caricato**: `test-b38a956f-409c-4cc9-abe2-fed55b10235e.txt`
+
+### Verifica Utente
+
+L'utente può ora caricare documenti dall'applicazione web senza errori 503:
+https://rumore.safetyprosuite.com/valutazioni
+
+---
+
+**Status**: ✅ RISOLTO
+**Tempo impiegato**: ~5 minuti
