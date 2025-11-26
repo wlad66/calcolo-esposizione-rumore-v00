@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, Header, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from contextlib import asynccontextmanager
 from typing import List, Optional
 import os
@@ -565,7 +565,8 @@ async def delete_documento(id: int, current_user: dict = Depends(get_current_use
 @app.get("/api/documenti/{id}/download")
 async def download_documento(id: int, current_user: dict = Depends(get_current_user)):
     """
-    Generate a presigned URL for downloading a document from B2 storage
+    Proxy download: scarica il file da B2 e lo serve al client
+    Mantiene il bucket privato e sicuro
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -585,10 +586,31 @@ async def download_documento(id: int, current_user: dict = Depends(get_current_u
         # URL format: https://rumore-storage.s3.eu-central-003.backblazeb2.com/filename.ext
         file_key = doc['url'].split('/')[-1]
 
-        # Generate presigned URL (valid for 1 hour)
-        presigned_url = storage.generate_presigned_url(file_key, expiration=3600)
+        # Download file from B2
+        try:
+            import io
+            file_obj = io.BytesIO()
+            storage.s3_client.download_fileobj(storage.bucket_name, file_key, file_obj)
+            file_obj.seek(0)
 
-        return {"url": presigned_url, "nome_file": doc['nome_file']}
+            # Determina content type dal nome file
+            content_type = "application/octet-stream"
+            if doc['nome_file'].lower().endswith('.pdf'):
+                content_type = "application/pdf"
+            elif doc['nome_file'].lower().endswith(('.png', '.jpg', '.jpeg')):
+                content_type = f"image/{doc['nome_file'].split('.')[-1].lower()}"
+
+            # Restituisci il file come stream
+            return StreamingResponse(
+                file_obj,
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{doc["nome_file"]}"'
+                }
+            )
+        except Exception as e:
+            print(f"Error downloading from B2: {e}")
+            raise HTTPException(status_code=500, detail="Errore durante il download del file")
     finally:
         cursor.close()
         conn.close()

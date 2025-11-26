@@ -196,14 +196,42 @@ const Valutazioni = () => {
   };
 
   const handleDownloadDocument = async (docId: number) => {
-    const response = await documentiAPI.download(docId);
-    if (response.data) {
-      // Apri il presigned URL in una nuova scheda per il download
-      window.open(response.data.url, '_blank');
-    } else if (response.error) {
+    try {
+      // Scarica il file direttamente dall'endpoint proxy
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/documenti/${docId}/download`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Download fallito');
+      }
+
+      // Ottieni il nome del file dall'header Content-Disposition
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let fileName = `documento-${docId}.pdf`;
+      if (contentDisposition) {
+        // Estrai il nome file tra virgolette: filename="nome.pdf"
+        const match = contentDisposition.match(/filename="([^"]+)"/);
+        if (match) fileName = match[1];
+      }
+
+      // Crea blob e scarica
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
       toast({
         title: 'Errore durante il download',
-        description: response.error,
+        description: error instanceof Error ? error.message : 'Errore sconosciuto',
         variant: 'destructive',
       });
     }

@@ -7,12 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus } from 'lucide-react';
+import LegalDocumentsAcceptance from '@/components/LegalDocuments';
 
 export default function Register() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [legalDocsAccepted, setLegalDocsAccepted] = useState(false);
+  const [showLegalError, setShowLegalError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +23,19 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validazione documenti legali
+    if (!legalDocsAccepted) {
+      setShowLegalError(true);
+      toast({
+        title: 'Documenti legali non accettati',
+        description: 'Devi accettare tutti i documenti legali obbligatori per registrarti',
+        variant: 'destructive',
+      });
+      // Scroll alla sezione documenti legali
+      document.getElementById('legal-docs')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
 
     // Validazione password
     if (password !== confirmPassword) {
@@ -62,15 +78,15 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-3xl">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Registrati</CardTitle>
           <CardDescription className="text-center">
-            Crea un nuovo account per accedere al sistema
+            Crea un nuovo account per accedere al sistema di calcolo esposizione rumore
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="nome">Nome completo</Label>
               <Input
@@ -125,15 +141,28 @@ export default function Register() {
                 minLength={6}
               />
             </div>
+
+            {/* Separatore */}
+            <div className="border-t pt-6" id="legal-docs">
+              <h3 className="text-lg font-semibold mb-4">Documenti Legali Obbligatori</h3>
+              <LegalDocumentsAcceptance
+                onAcceptAll={setLegalDocsAccepted}
+                showValidationError={showLegalError}
+              />
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || !legalDocsAccepted}
+            >
               {isLoading ? (
                 'Registrazione in corso...'
               ) : (
                 <>
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Registrati
+                  {legalDocsAccepted ? 'Completa Registrazione' : 'Accetta i Documenti Legali per Procedere'}
                 </>
               )}
             </Button>

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import CookieBanner from "@/components/CookieBanner";
 import Index from "./pages/Index";
 import Aziende from "./pages/Aziende";
 import Valutazioni from "./pages/Valutazioni";
@@ -13,6 +14,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import LegalDocument from "./pages/LegalDocument";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,13 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* Route documenti legali (pubbliche) */}
+            <Route path="/legal/:docId" element={<LegalDocument />} />
+            <Route path="/terms" element={<LegalDocument />} />
+            <Route path="/privacy" element={<LegalDocument />} />
+            <Route path="/cookie-policy" element={<LegalDocument />} />
+            <Route path="/dpa" element={<LegalDocument />} />
 
             {/* Route protette */}
             <Route
@@ -68,6 +77,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieBanner />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
