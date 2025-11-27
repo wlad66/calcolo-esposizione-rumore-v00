@@ -190,6 +190,13 @@ export const generaPDFEsposizione = (
 
     yPos += 30;
 
+    // Verifica spazio per tabella valori limite (serve circa 50mm)
+    const pageHeight = doc.internal.pageSize.height;
+    if (yPos > pageHeight - 60) {
+      doc.addPage();
+      yPos = 20;
+    }
+
     // Valori limite
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -463,6 +470,13 @@ export const generaPDFDPI = (
     doc.text(risultatoAttenuazione.protezioneAdeguata, 22, yPos + 12);
 
     yPos += 22;
+
+    // Verifica spazio per tabella criteri (serve circa 70mm)
+    const pageHeight = doc.internal.pageSize.height;
+    if (yPos > pageHeight - 80) {
+      doc.addPage();
+      yPos = 20;
+    }
 
     // Criteri di interpretazione
     doc.setFont('helvetica', 'bold');
