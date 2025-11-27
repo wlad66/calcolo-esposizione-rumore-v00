@@ -15,6 +15,8 @@ from datetime import datetime, timedelta
 from auth import hash_password, verify_password, create_access_token, decode_access_token
 import resend
 from storage import storage
+from subscriptions import router as subscriptions_router
+from stripe_webhooks import router as webhooks_router
 
 load_dotenv()
 
@@ -213,6 +215,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ==================== ROUTERS ====================
+
+# Include subscription and webhook routers
+app.include_router(subscriptions_router)
+app.include_router(webhooks_router)
 
 # ==================== MIDDLEWARE AUTENTICAZIONE ====================
 
