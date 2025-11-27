@@ -159,11 +159,7 @@ CREATE TABLE IF NOT EXISTS subscription_usage_logs (
     quantity INTEGER DEFAULT 1,  -- Quantità usata (es. MB per storage)
 
     -- Timestamps
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    -- Indexes per query performance
-    INDEX idx_usage_subscription (subscription_id, created_at),
-    INDEX idx_usage_resource (resource_type, created_at)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================================
@@ -285,6 +281,8 @@ CREATE INDEX IF NOT EXISTS idx_user_subscriptions_stripe_id ON user_subscription
 CREATE INDEX IF NOT EXISTS idx_invoices_subscription ON subscription_invoices(subscription_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_user ON subscription_invoices(user_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON subscription_invoices(status);
+CREATE INDEX IF NOT EXISTS idx_usage_subscription ON subscription_usage_logs(subscription_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_usage_resource ON subscription_usage_logs(resource_type, created_at);
 
 -- ============================================================
 -- TRIGGER PER UPDATED_AT
