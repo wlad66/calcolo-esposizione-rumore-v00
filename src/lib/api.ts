@@ -314,3 +314,98 @@ export const documentiAPI = {
     return fetchApi<{ url: string; nome_file: string }>(`/api/documenti/${id}/download`);
   }
 };
+
+// SUBSCRIPTIONS API
+export interface SubscriptionPlanAPI {
+  id: number;
+  name: string;
+  display_name: string;
+  description: string | null;
+  price_monthly: number;
+  price_yearly: number | null;
+  currency: string;
+  max_valutazioni_esposizione_month: number | null;
+  max_valutazioni_dpi_month: number | null;
+  max_aziende: number | null;
+  storage_mb: number | null;
+  feature_archivio_documenti: boolean;
+  feature_export_data: boolean;
+  feature_multi_user: boolean;
+  max_users: number;
+  feature_api_access: boolean;
+  feature_white_label: boolean;
+  feature_priority_support: boolean;
+  is_popular: boolean;
+}
+
+export interface UserSubscriptionAPI {
+  id: number;
+  plan_name: string;
+  plan_display_name: string;
+  status: string;
+  billing_cycle: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  trial_end_date: string | null;
+  usage_valutazioni_esposizione_current: number;
+  usage_valutazioni_dpi_current: number;
+  max_valutazioni_esposizione_month: number | null;
+  max_valutazioni_dpi_month: number | null;
+}
+
+export const subscriptionsAPI = {
+  async getPlans() {
+    return fetchApi<SubscriptionPlanAPI[]>('/api/subscriptions/plans');
+  },
+
+  async getMySubscription() {
+    return fetchApi<UserSubscriptionAPI>('/api/subscriptions/my-subscription');
+  },
+
+  async createCheckoutSession(planId: number, billingCycle: 'monthly' | 'yearly') {
+    return fetchApi<{ checkout_url: string; session_id: string }>(
+      '/api/subscriptions/create-checkout-session',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          plan_id: planId,
+          billing_cycle: billingCycle,
+        }),
+      }
+    );
+  },
+
+  async createPortalSession() {
+    return fetchApi<{ portal_url: string }>(
+      '/api/subscriptions/portal-session',
+      {
+        method: 'POST',
+      }
+    );
+  },
+
+  async cancelSubscription(atPeriodEnd: boolean = true) {
+    return fetchApi<{ success: boolean; message: string; cancel_at_period_end: boolean }>(
+      '/api/subscriptions/cancel',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          cancel_at_period_end: atPeriodEnd,
+        }),
+      }
+    );
+  },
+
+  async getUsage() {
+    return fetchApi<{
+      usage_valutazioni_esposizione_current: number;
+      usage_valutazioni_dpi_current: number;
+      usage_storage_mb_current: number;
+      max_valutazioni_esposizione_month: number | null;
+      max_valutazioni_dpi_month: number | null;
+      max_storage_mb: number | null;
+      period_start: string | null;
+      period_end: string | null;
+    }>('/api/subscriptions/usage');
+  },
+};
