@@ -98,7 +98,11 @@ export default function Login() {
             </Button>
             <div className="text-sm text-center text-gray-600">
               Non hai un account?{' '}
-              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link
+                to="/register"
+                state={location.state}
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Registrati
               </Link>
             </div>
