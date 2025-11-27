@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,7 +27,10 @@ export default function Login() {
         title: 'Accesso effettuato',
         description: 'Benvenuto!',
       });
-      navigate('/');
+
+      // Redirect to the page the user came from, or to home if no redirect was specified
+      const from = (location.state as any)?.from || '/';
+      navigate(from);
     } catch (error) {
       toast({
         title: 'Errore di accesso',
