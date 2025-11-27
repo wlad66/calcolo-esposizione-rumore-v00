@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Building2, ArrowLeft, Trash2, Filter, Edit, FolderOpen, Download, X, Upload } from 'lucide-react';
+import { FileText, Building2, ArrowLeft, Trash2, Filter, Edit, FolderOpen, Download, X, Upload, Eye } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -231,6 +231,37 @@ const Valutazioni = () => {
     } catch (error) {
       toast({
         title: 'Errore durante il download',
+        description: error instanceof Error ? error.message : 'Errore sconosciuto',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleViewDocument = async (docId: number) => {
+    try {
+      // Scarica il file dall'endpoint proxy
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/documenti/${docId}/download`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Caricamento fallito');
+      }
+
+      // Crea blob e apri in nuova scheda
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+
+      // Revoca URL dopo un breve delay per permettere l'apertura
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      console.error('Errore visualizzazione documento:', error);
+      toast({
+        title: 'Errore durante la visualizzazione',
         description: error instanceof Error ? error.message : 'Errore sconosciuto',
         variant: 'destructive',
       });
@@ -597,6 +628,14 @@ const Valutazioni = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleViewDocument(doc.id)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Visualizza
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
