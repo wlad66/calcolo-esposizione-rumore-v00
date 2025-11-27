@@ -3,6 +3,7 @@ Stripe Webhook Handler
 Processes Stripe webhook events to keep database in sync
 """
 
+from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 import psycopg2
 from psycopg2.extras import RealDictCursor

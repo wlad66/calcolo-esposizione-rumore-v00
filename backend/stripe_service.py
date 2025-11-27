@@ -3,6 +3,7 @@ Stripe Integration Service
 Handles all Stripe-related operations for subscription management
 """
 
+from __future__ import annotations
 import stripe
 import os
 from typing import Optional, Dict, Any

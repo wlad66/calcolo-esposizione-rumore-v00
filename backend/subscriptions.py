@@ -3,6 +3,7 @@ Subscription Management API Endpoints
 Handles subscription-related routes and business logic
 """
 
+from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from pydantic import BaseModel
 from typing import Optional, List
