@@ -220,17 +220,16 @@ export const generaPDFEsposizione = (
       styles: { fontSize: 9 }
     });
 
-    // Footer
-    const totalPages = (doc as any).internal.pages.length - 1;
-    const pageHeight = doc.internal.pageSize.height;
+    // Footer - posizionato dopo l'ultima tabella
+    yPos = (doc as any).lastAutoTable.finalY + 15;
 
     doc.setFontSize(8);
     doc.setTextColor(107, 114, 128);
     doc.setFont('helvetica', 'italic');
     const durataTotale = misurazioni.reduce((sum, m) => sum + (parseFloat(m.durata) || 0), 0);
-    doc.text(`Formula: LEX,8h = 10 × log₁₀(Σ(10^(LEQi/10) × ti/480))`, 20, pageHeight - 20);
-    doc.text(`Durata totale misurata: ${durataTotale} minuti`, 20, pageHeight - 15);
-    doc.text(`Report generato il ${dataOggi}`, 20, pageHeight - 10);
+    doc.text(`Formula: LEX,8h = 10 × log₁₀(Σ(10^(LEQi/10) × ti/480))`, 20, yPos);
+    doc.text(`Durata totale misurata: ${durataTotale} minuti`, 20, yPos + 5);
+    doc.text(`Report generato il ${dataOggi}`, 20, yPos + 10);
 
     // Salva o ritorna il PDF
     if (returnBlob) {
@@ -505,14 +504,15 @@ export const generaPDFDPI = (
       }
     });
 
-    // Footer
-    const pageHeight = doc.internal.pageSize.height;
+    // Footer - posizionato dopo l'ultima tabella
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
     doc.setFontSize(8);
     doc.setTextColor(107, 114, 128);
     doc.setFont('helvetica', 'italic');
-    doc.text(`Calcolo: L'eff = LEX,8h - PNR = ${lexDPI.toFixed(1)} - ${risultatoAttenuazione.pnr} = ${risultatoAttenuazione.leff} dB(A)`, 20, pageHeight - 20);
-    doc.text('Il Metodo HML utilizza i valori H, M, L per calcolare l\'attenuazione prevista', 20, pageHeight - 15);
-    doc.text(`Report generato il ${dataOggi}`, 20, pageHeight - 10);
+    doc.text(`Calcolo: L'eff = LEX,8h - PNR = ${lexDPI.toFixed(1)} - ${risultatoAttenuazione.pnr} = ${risultatoAttenuazione.leff} dB(A)`, 20, yPos);
+    doc.text('Il Metodo HML utilizza i valori H, M, L per calcolare l\'attenuazione prevista', 20, yPos + 5);
+    doc.text(`Report generato il ${dataOggi}`, 20, yPos + 10);
 
     // Salva o ritorna il PDF
     if (returnBlob) {
