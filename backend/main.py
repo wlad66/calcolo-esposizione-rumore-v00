@@ -1259,6 +1259,12 @@ if static_dir.exists():
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="Endpoint non trovato")
 
+        # Se la richiesta è per un file specifico (es. markdown, immagini), prova a servirlo
+        if full_path.startswith("docs/") or full_path.endswith(('.md', '.pdf', '.txt', '.json')):
+            requested_file = static_dir / full_path
+            if requested_file.exists() and requested_file.is_file():
+                return FileResponse(requested_file)
+
         # Per tutte le altre route, serve index.html
         index_file = static_dir / "index.html"
         if index_file.exists():
