@@ -190,9 +190,9 @@ export const generaPDFEsposizione = (
 
     yPos += 30;
 
-    // Verifica spazio per tabella valori limite (serve circa 50mm)
+    // Verifica spazio per tabella valori limite (serve circa 55mm totali: titolo + tabella + footer)
     const pageHeight = doc.internal.pageSize.height;
-    if (yPos > pageHeight - 60) {
+    if (yPos > pageHeight - 70) {
       doc.addPage();
       yPos = 20;
     }
@@ -471,9 +471,9 @@ export const generaPDFDPI = (
 
     yPos += 22;
 
-    // Verifica spazio per tabella criteri (serve circa 70mm)
+    // Verifica spazio per tabella criteri (serve circa 75mm totali: titolo + tabella + footer)
     const pageHeight = doc.internal.pageSize.height;
-    if (yPos > pageHeight - 80) {
+    if (yPos > pageHeight - 90) {
       doc.addPage();
       yPos = 20;
     }
