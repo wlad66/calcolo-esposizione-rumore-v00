@@ -13,12 +13,58 @@ from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 from auth import hash_password, verify_password, create_access_token, decode_access_token
-import resend
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from storage import storage
 from subscriptions import router as subscriptions_router
 from stripe_webhooks import router as webhooks_router
 
 load_dotenv()
+
+# ==================== SMTP EMAIL HELPER ====================
+
+def send_email(to_email: str, subject: str, html_content: str) -> bool:
+    """
+    Invia email tramite SMTP
+
+    Args:
+        to_email: Indirizzo email destinatario
+        subject: Oggetto dell'email
+        html_content: Contenuto HTML dell'email
+
+    Returns:
+        bool: True se l'email è stata inviata con successo, False altrimenti
+    """
+    try:
+        smtp_host = os.getenv("SMTP_HOST")
+        smtp_port = int(os.getenv("SMTP_PORT", "465"))
+        smtp_user = os.getenv("SMTP_USER")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+        smtp_from_email = os.getenv("SMTP_FROM_EMAIL", smtp_user)
+        smtp_from_name = os.getenv("SMTP_FROM_NAME", "Safety Pro Suite")
+
+        # Crea messaggio
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"{smtp_from_name} <{smtp_from_email}>"
+        msg["To"] = to_email
+
+        # Aggiungi contenuto HTML
+        html_part = MIMEText(html_content, "html")
+        msg.attach(html_part)
+
+        # Connetti e invia
+        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+
+        print(f"✅ Email inviata con successo a {to_email}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Errore invio email a {to_email}: {e}")
+        return False
 
 # ==================== MODELLI PYDANTIC ====================
 
@@ -380,34 +426,31 @@ def forgot_password(request: ForgotPasswordRequest, conn=Depends(get_db)):
         """, (user["id"], token, expires_at))
         conn.commit()
 
-        # Configura Resend
-        resend.api_key = os.getenv("RESEND_API_KEY")
-
         # URL per reset (in produzione sarà il dominio reale)
         reset_url = f"{os.getenv('FRONTEND_URL', 'http://72.61.189.136')}/reset-password?token={token}"
 
-        # Invia email
-        try:
-            resend.Emails.send({
-                "from": os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev"),
-                "to": user["email"],
-                "subject": "Recupero Password - Calcolo Esposizione Rumore",
-                "html": f"""
-                    <h2>Recupero Password</h2>
-                    <p>Ciao {user['nome']},</p>
-                    <p>Hai richiesto di reimpostare la tua password.</p>
-                    <p>Clicca sul link seguente per procedere:</p>
-                    <p><a href="{reset_url}">Reimposta Password</a></p>
-                    <p>Il link è valido per 1 ora.</p>
-                    <p>Se non hai richiesto tu questa operazione, ignora questa email.</p>
-                    <br>
-                    <p>Cordiali saluti,<br>Il team di Calcolo Esposizione Rumore</p>
-                """
-            })
-        except Exception as email_error:
-            print(f"Errore invio email: {email_error}")
-            # Non bloccare l'operazione se l'email fallisce
-            # In sviluppo, stampa il link nel log
+        # Prepara contenuto email
+        html_content = f"""
+            <h2>Recupero Password</h2>
+            <p>Ciao {user['nome']},</p>
+            <p>Hai richiesto di reimpostare la tua password.</p>
+            <p>Clicca sul link seguente per procedere:</p>
+            <p><a href="{reset_url}">Reimposta Password</a></p>
+            <p>Il link è valido per 1 ora.</p>
+            <p>Se non hai richiesto tu questa operazione, ignora questa email.</p>
+            <br>
+            <p>Cordiali saluti,<br>Il team di Calcolo Esposizione Rumore</p>
+        """
+
+        # Invia email tramite SMTP
+        email_sent = send_email(
+            to_email=user["email"],
+            subject="Recupero Password - Calcolo Esposizione Rumore",
+            html_content=html_content
+        )
+
+        # Se l'email non viene inviata, stampa il link nel log (utile in sviluppo)
+        if not email_sent:
             print(f"🔗 Link reset password: {reset_url}")
 
         return {"message": "Se l'email esiste, riceverai un link per reimpostare la password"}
@@ -1268,7 +1311,7 @@ if static_dir.exists():
             raise HTTPException(status_code=404, detail="Endpoint non trovato")
 
         # Se la richiesta è per un file specifico (es. markdown, immagini), prova a servirlo
-        if full_path.startswith("docs/") or full_path.endswith(('.md', '.pdf', '.txt', '.json')):
+        if full_path.startswith("docs/") or full_path.endswith(('.md', '.pdf', '.txt', '.json', '.png', '.ico', '.jpg', '.jpeg', '.svg')):
             requested_file = static_dir / full_path
             if requested_file.exists() and requested_file.is_file():
                 return FileResponse(requested_file)
