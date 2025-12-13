@@ -429,17 +429,118 @@ def forgot_password(request: ForgotPasswordRequest, conn=Depends(get_db)):
         # URL per reset (in produzione sarà il dominio reale)
         reset_url = f"{os.getenv('FRONTEND_URL', 'http://72.61.189.136')}/reset-password?token={token}"
 
-        # Prepara contenuto email
+        # Prepara contenuto email professionale
         html_content = f"""
-            <h2>Recupero Password</h2>
-            <p>Ciao {user['nome']},</p>
-            <p>Hai richiesto di reimpostare la tua password.</p>
-            <p>Clicca sul link seguente per procedere:</p>
-            <p><a href="{reset_url}">Reimposta Password</a></p>
-            <p>Il link è valido per 1 ora.</p>
-            <p>Se non hai richiesto tu questa operazione, ignora questa email.</p>
-            <br>
-            <p>Cordiali saluti,<br>Il team di Calcolo Esposizione Rumore</p>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recupero Password</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 40px 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">
+                                Safety Pro Suite
+                            </h1>
+                            <p style="margin: 8px 0 0 0; color: #e0e7ff; font-size: 14px; font-weight: 400;">
+                                Calcolo Esposizione Rumore
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #1f2937; font-size: 24px; font-weight: 600;">
+                                Recupero Password
+                            </h2>
+
+                            <p style="margin: 0 0 16px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                Ciao <strong style="color: #1f2937;">{user['nome']}</strong>,
+                            </p>
+
+                            <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                Hai richiesto di reimpostare la password del tuo account. Per procedere, clicca sul pulsante qui sotto:
+                            </p>
+
+                            <!-- CTA Button -->
+                            <table role="presentation" style="margin: 32px 0;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <a href="{reset_url}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">
+                                            Reimposta Password
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Info Box -->
+                            <table role="presentation" style="margin: 24px 0; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                                <tr>
+                                    <td style="padding: 16px 20px;">
+                                        <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+                                            <strong style="display: block; margin-bottom: 4px;">Importante:</strong>
+                                            Questo link è valido per <strong>1 ora</strong>. Dopo questo periodo dovrai richiedere un nuovo link di recupero.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 24px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                                Se non hai richiesto tu questa operazione, puoi ignorare questa email in tutta sicurezza. La tua password non sarà modificata.
+                            </p>
+
+                            <!-- Alternative Link -->
+                            <p style="margin: 32px 0 0 0; padding-top: 24px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 13px; line-height: 1.6;">
+                                Se il pulsante non funziona, copia e incolla questo link nel tuo browser:<br>
+                                <a href="{reset_url}" style="color: #3b82f6; word-break: break-all;">{reset_url}</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 12px 0; color: #1f2937; font-size: 15px; font-weight: 600;">
+                                Safety Pro Suite
+                            </p>
+                            <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">
+                                Calcolo Esposizione Rumore | D.Lgs. 81/2008
+                            </p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 13px;">
+                                &copy; 2024 AQR Group. Tutti i diritti riservati.
+                            </p>
+                            <p style="margin: 16px 0 0 0; color: #9ca3af; font-size: 12px;">
+                                <a href="https://rumore.safetyprosuite.com" style="color: #3b82f6; text-decoration: none;">rumore.safetyprosuite.com</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+                <!-- Legal Notice -->
+                <table role="presentation" style="max-width: 600px; margin: 20px auto 0;">
+                    <tr>
+                        <td style="text-align: center; padding: 0 20px;">
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                                Questa email è stata inviata automaticamente. Si prega di non rispondere a questo indirizzo.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
         """
 
         # Invia email tramite SMTP
