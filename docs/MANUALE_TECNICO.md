@@ -2,7 +2,7 @@
 
 **Versione:** 1.0
 **Data:** Dicembre 2024
-**Proprietario:** AQR Group
+**Proprietario:** TOKEM LLC
 **URL Produzione:** https://rumore.safetyprosuite.com/
 
 ---
@@ -1101,8 +1101,9 @@ echo "✅ Pulizia vecchi backup completata"
 
 ### 12.5 Contatti e Risorse
 
-**Sviluppatore Principale**: [Nome]
-**Email Tecnico**: dev@aqrgroup.it
+**Proprietario**: TOKEM LLC
+**Email**: info@tokem.us
+**Website**: https://www.tokem.us
 **Repository**: https://github.com/wlad66/calcolo-esposizione-rumore-v00
 
 **Risorse Esterne:**

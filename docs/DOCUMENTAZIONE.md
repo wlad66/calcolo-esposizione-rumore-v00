@@ -455,9 +455,13 @@ CREATE TABLE documenti (
 ## Supporto
 
 Per problemi o richieste:
-- Email: info@aqrgroup.it
+- Email: info@tokem.us
+- Website: https://www.tokem.us
 - Repository: https://github.com/wlad66/calcolo-esposizione-rumore-v00
 
 ## Licenza
 
-Proprietario: AQR Group
+**Proprietario:** TOKEM LLC
+5500 BENTGRASS DR UNIT 301
+34235 SARASOTA (FL) - U.S.A.
+FEI/EIN Number: 84-1930240

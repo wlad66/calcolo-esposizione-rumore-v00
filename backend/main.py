@@ -516,7 +516,7 @@ def forgot_password(request: ForgotPasswordRequest, conn=Depends(get_db)):
                                 Calcolo Esposizione Rumore | D.Lgs. 81/2008
                             </p>
                             <p style="margin: 0; color: #9ca3af; font-size: 13px;">
-                                &copy; 2024 AQR Group. Tutti i diritti riservati.
+                                &copy; 2024 TOKEM LLC. Tutti i diritti riservati.
                             </p>
                             <p style="margin: 16px 0 0 0; color: #9ca3af; font-size: 12px;">
                                 <a href="https://rumore.safetyprosuite.com" style="color: #3b82f6; text-decoration: none;">rumore.safetyprosuite.com</a>

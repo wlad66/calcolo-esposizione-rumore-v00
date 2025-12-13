@@ -345,9 +345,10 @@ pytest
 
 ## 🤝 Contribuire
 
-Il progetto è **proprietario** di AQR Group. Per contributi o modifiche, contattare:
+Il progetto è **proprietario** di TOKEM LLC. Per contributi o modifiche, contattare:
 
-- **Email:** info@aqrgroup.it
+- **Email:** info@tokem.us
+- **Website:** [www.tokem.us](https://www.tokem.us)
 - **Repository:** [GitHub](https://github.com/wlad66/calcolo-esposizione-rumore-v00)
 
 ---
@@ -356,7 +357,8 @@ Il progetto è **proprietario** di AQR Group. Per contributi o modifiche, contat
 
 ### Contatti
 
-- **Email Tecnico:** info@aqrgroup.it
+- **Email:** info@tokem.us
+- **Website:** [www.tokem.us](https://www.tokem.us)
 - **Sito Web:** https://rumore.safetyprosuite.com
 - **Repository:** https://github.com/wlad66/calcolo-esposizione-rumore-v00
 
@@ -372,7 +374,10 @@ Il progetto è **proprietario** di AQR Group. Per contributi o modifiche, contat
 
 ## 📄 Licenza
 
-**Proprietario:** AQR Group
+**Proprietario:** TOKEM LLC
+5500 BENTGRASS DR UNIT 301
+34235 SARASOTA (FL) - U.S.A.
+FEI/EIN Number: 84-1930240
 
 Tutti i diritti riservati. Questo software è proprietario e non può essere utilizzato, copiato, modificato o distribuito senza autorizzazione esplicita del proprietario.
 
@@ -380,7 +385,7 @@ Tutti i diritti riservati. Questo software è proprietario e non può essere uti
 
 ## 🏆 Crediti
 
-**Sviluppato da:** AQR Group
+**Sviluppato da:** TOKEM LLC
 **Anno:** 2024
 **Versione:** 2.0
 
@@ -390,6 +395,6 @@ Tutti i diritti riservati. Questo software è proprietario e non può essere uti
 
 **[⬆ Torna su](#-calcolatore-esposizione-rumore)**
 
-Made with ❤️ by AQR Group
+Made with ❤️ by [TOKEM LLC](https://www.tokem.us)
 
 </div>
