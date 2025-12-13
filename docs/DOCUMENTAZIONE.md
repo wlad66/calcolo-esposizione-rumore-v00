@@ -16,7 +16,7 @@ Applicazione web professionale per il calcolo dell'esposizione al rumore secondo
 - **FastAPI** (Python) - Framework web
 - **PostgreSQL** - Database
 - **JWT** - Autenticazione
-- **Resend** - Invio email
+- **SMTP** (Hostinger) - Invio email transazionali
 - **bcrypt** - Hash password
 - **boto3** - Client S3 per Backblaze B2
 - **Backblaze B2** - Object storage
@@ -160,9 +160,13 @@ SECRET_KEY=your-secret-key-here-CHANGE-THIS
 # CORS - Specificare origine frontend (NON usare * in produzione)
 CORS_ORIGINS=http://yourdomain.com
 
-# Email service
-RESEND_API_KEY=re_xxxxx
-RESEND_FROM_EMAIL=noreply@dominio.it
+# SMTP Email Configuration
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_USER=noreply@safetyprosuite.com
+SMTP_PASSWORD=your_smtp_password
+SMTP_FROM_EMAIL=noreply@safetyprosuite.com
+SMTP_FROM_NAME=Safety Pro Suite
 
 # Frontend URL per link recupero password
 FRONTEND_URL=http://yourdomain.com
@@ -207,7 +211,10 @@ docker build -t calcolo-rumore .
 # Run container
 docker run -p 8000:8000 \
   -e DATABASE_URL=postgresql://... \
-  -e RESEND_API_KEY=re_... \
+  -e SMTP_HOST=smtp.hostinger.com \
+  -e SMTP_PORT=465 \
+  -e SMTP_USER=noreply@safetyprosuite.com \
+  -e SMTP_PASSWORD=your_password \
   calcolo-rumore
 ```
 
@@ -358,8 +365,12 @@ PORT=8000
 HOST=0.0.0.0
 SECRET_KEY=*** (generata con secrets.token_urlsafe(32))
 CORS_ORIGINS=https://rumore.safetyprosuite.com
-RESEND_API_KEY=re_***
-RESEND_FROM_EMAIL=noreply@puntodiraccolta.com
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_USER=noreply@safetyprosuite.com
+SMTP_PASSWORD=***
+SMTP_FROM_EMAIL=noreply@safetyprosuite.com
+SMTP_FROM_NAME=Safety Pro Suite
 FRONTEND_URL=https://rumore.safetyprosuite.com
 
 # Backblaze B2 Storage
