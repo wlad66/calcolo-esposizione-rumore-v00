@@ -120,7 +120,7 @@ export default function Pricing() {
           {plans.map((plan) => (
             <Card
               key={plan.id}
-              className={`relative ${plan.is_popular ? 'border-2 border-blue-500 shadow-xl scale-105' : 'border-gray-200'}`}
+              className={`relative flex flex-col h-full ${plan.is_popular ? 'border-2 border-blue-500 shadow-xl scale-105' : 'border-gray-200'}`}
             >
               {plan.is_popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -158,7 +158,7 @@ export default function Pricing() {
                 </div>
               </CardHeader>
 
-              <CardContent>
+              <CardContent className="flex-grow">
                 <div className="space-y-3">
                   {/* Features List */}
                   {plan.max_valutazioni_esposizione_month !== null && plan.max_valutazioni_esposizione_month > 0 && (
@@ -250,11 +250,10 @@ export default function Pricing() {
                 <Button
                   onClick={() => handleSubscribe(plan.id, plan.name)}
                   disabled={checkoutLoading === plan.id}
-                  className={`w-full ${
-                    plan.is_popular
+                  className={`w-full ${plan.is_popular
                       ? 'bg-blue-600 hover:bg-blue-700'
                       : 'bg-gray-800 hover:bg-gray-900'
-                  }`}
+                    }`}
                   size="lg"
                 >
                   {checkoutLoading === plan.id ? (
