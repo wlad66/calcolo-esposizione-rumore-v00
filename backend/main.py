@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Header, Request, UploadFile
+from fastapi import FastAPI, HTTPException, Depends, Header, Request, UploadFile, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -297,12 +297,82 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
     return dict(user)
 
+def check_trial_expired(user_id: int, conn) -> dict:
+    """
+    Verifica se il trial dell'utente è scaduto
+    
+    Returns:
+        dict: {"expired": bool, "subscription": dict, "days_remaining": int}
+    """
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        cursor.execute("""
+            SELECT us.*, sp.name as plan_name, sp.display_name
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON us.plan_id = sp.id
+            WHERE us.user_id = %s AND us.status IN ('trial', 'active')
+            ORDER BY us.created_at DESC
+            LIMIT 1
+        """, (user_id,))
+        
+        subscription = cursor.fetchone()
+        
+        if not subscription:
+            return {"expired": True, "message": "Nessun abbonamento attivo", "days_remaining": 0}
+        
+        # Se è in trial, verifica scadenza
+        if subscription['is_trial'] and subscription['trial_ends_at']:
+            now = datetime.now()
+            if subscription['trial_ends_at'].replace(tzinfo=None) < now:
+                # Trial scaduto - aggiorna status
+                cursor.execute("""
+                    UPDATE user_subscriptions 
+                    SET status = 'trial_expired'
+                    WHERE id = %s
+                """, (subscription['id'],))
+                conn.commit()
+                return {
+                    "expired": True, 
+                    "message": "Trial scaduto. Effettua l'upgrade per continuare.",
+                    "days_remaining": 0
+                }
+            else:
+                # Calcola giorni rimanenti
+                days_remaining = (subscription['trial_ends_at'].replace(tzinfo=None) - now).days
+                return {
+                    "expired": False, 
+                    "subscription": dict(subscription),
+                    "days_remaining": days_remaining
+                }
+        
+        # Abbonamento attivo (non trial)
+        return {"expired": False, "subscription": dict(subscription), "days_remaining": None}
+        
+    finally:
+        cursor.close()
+
+def require_active_subscription(current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
+    """
+    Middleware per proteggere endpoint che richiedono abbonamento attivo
+    Blocca se trial scaduto
+    """
+    trial_status = check_trial_expired(current_user['id'], conn)
+    
+    if trial_status['expired']:
+        raise HTTPException(
+            status_code=403, 
+            detail=trial_status['message']
+        )
+    
+    return current_user
+
 # ==================== ENDPOINTS AUTENTICAZIONE ====================
 
 @app.post("/api/auth/register", response_model=TokenResponse)
 def register(user_data: UserRegister, conn=Depends(get_db)):
     """
-    Registra un nuovo utente
+    Registra un nuovo utente e assegna automaticamente piano Free Trial (7 giorni)
     """
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -323,10 +393,30 @@ def register(user_data: UserRegister, conn=Depends(get_db)):
         """, (user_data.email, password_hash, user_data.nome))
 
         user = cursor.fetchone()
+        user_id = user["id"]
+        
+        # Auto-assegna piano Free Trial (7 giorni)
+        cursor.execute("""
+            SELECT id FROM subscription_plans 
+            WHERE name = 'free_trial' AND is_active = true
+        """)
+        trial_plan = cursor.fetchone()
+        
+        if trial_plan:
+            trial_ends_at = datetime.now() + timedelta(days=7)
+            cursor.execute("""
+                INSERT INTO user_subscriptions 
+                (user_id, plan_id, status, is_trial, trial_ends_at, created_at)
+                VALUES (%s, %s, 'trial', true, %s, NOW())
+            """, (user_id, trial_plan['id'], trial_ends_at))
+            print(f"✅ Piano Free Trial assegnato a utente {user_id} (scadenza: {trial_ends_at})")
+        else:
+            print(f"⚠️  Piano free_trial non trovato nel database")
+        
         conn.commit()
 
         # Crea token JWT
-        access_token = create_access_token(data={"user_id": user["id"], "email": user["email"]})
+        access_token = create_access_token(data={"user_id": user_id, "email": user["email"]})
 
         return {
             "access_token": access_token,
@@ -398,6 +488,22 @@ def get_me(current_user: dict = Depends(get_current_user)):
     Ottieni informazioni sull'utente corrente
     """
     return current_user
+
+@app.get("/api/auth/subscription-status")
+def get_subscription_status(current_user: dict = Depends(get_current_user), conn=Depends(get_db)):
+    """
+    Ottieni status abbonamento dell'utente corrente
+    Include info su trial, giorni rimanenti, piano attivo
+    """
+    trial_status = check_trial_expired(current_user['id'], conn)
+    
+    return {
+        "user_id": current_user['id'],
+        "expired": trial_status['expired'],
+        "days_remaining": trial_status.get('days_remaining'),
+        "subscription": trial_status.get('subscription'),
+        "message": trial_status.get('message')
+    }
 
 @app.post("/api/auth/forgot-password")
 def forgot_password(request: ForgotPasswordRequest, conn=Depends(get_db)):
@@ -1388,10 +1494,14 @@ if static_dir.exists():
     app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
 
     @app.get("/")
-    def serve_frontend():
+    def serve_frontend(response: Response):
         """Serve il frontend React"""
         index_file = static_dir / "index.html"
         if index_file.exists():
+            # Aggiungi header no-cache per forzare refresh
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
             return FileResponse(index_file)
         return {
             "app": "API Calcolo Esposizione Rumore",

@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { AziendaForm } from '@/components/aziende/AziendaForm';
+import { TrialBanner } from '@/components/TrialBanner';
 
 const Index = () => {
   const location = useLocation();
@@ -709,6 +710,9 @@ const Index = () => {
           </div>
         </header>
 
+        {/* Trial Banner */}
+        <TrialBanner />
+
         <Card className="p-6 mb-6">
           <div className="grid md:grid-cols-3 gap-4">
             <div className="md:col-span-3">
@@ -856,3 +860,4 @@ const Index = () => {
 };
 
 export default Index;
+// Cache bust: 2025-12-17 17:51:31
