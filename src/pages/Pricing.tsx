@@ -251,8 +251,8 @@ export default function Pricing() {
                   onClick={() => handleSubscribe(plan.id, plan.name)}
                   disabled={checkoutLoading === plan.id}
                   className={`w-full ${plan.is_popular
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-800 hover:bg-gray-900'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-gray-800 hover:bg-gray-900'
                     }`}
                   size="lg"
                 >
@@ -263,7 +263,7 @@ export default function Pricing() {
                     </>
                   ) : (
                     <>
-                      {plan.name === 'free' ? 'Inizia Gratis' : 'Prova Gratis per 15 Giorni'}
+                      {plan.name === 'free' ? 'Inizia Gratis' : 'Abbonati Ora'}
                     </>
                   )}
                 </Button>
