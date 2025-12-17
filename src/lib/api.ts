@@ -362,6 +362,16 @@ export const subscriptionsAPI = {
     return fetchApi<UserSubscriptionAPI>('/api/subscriptions/my-subscription');
   },
 
+  async getSubscriptionStatus() {
+    return fetchApi<{
+      user_id: number;
+      expired: boolean;
+      days_remaining: number | null;
+      subscription: any;
+      message?: string;
+    }>('/api/auth/subscription-status');
+  },
+
   async createCheckoutSession(planId: number, billingCycle: 'monthly' | 'yearly') {
     return fetchApi<{ checkout_url: string; session_id: string }>(
       '/api/subscriptions/create-checkout-session',
@@ -409,3 +419,4 @@ export const subscriptionsAPI = {
     }>('/api/subscriptions/usage');
   },
 };
+
