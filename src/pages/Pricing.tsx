@@ -148,7 +148,7 @@ export default function Pricing() {
                       </div>
                       {plan.name === 'pro' && (
                         <Badge variant="outline" className="mt-2 border-green-500 text-green-700 bg-green-50">
-                          🎉 15 giorni di prova gratuita
+                          🎉 7 giorni di prova gratuita
                         </Badge>
                       )}
                     </>
