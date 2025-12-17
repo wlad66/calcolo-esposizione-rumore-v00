@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
-load_dotenv()
+load_dotenv(override=False)  # Don't override system env vars from Dokploy
 
 # Configure Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
