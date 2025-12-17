@@ -31,9 +31,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia il codice backend
 COPY backend/ .
 
-# Copia file .env.stripe come .env per load_dotenv()
-COPY backend/.env.stripe .env
-
 # Copia i file statici del frontend dal build precedente
 COPY --from=frontend-builder /frontend/dist ./static
 
